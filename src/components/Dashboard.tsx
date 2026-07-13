@@ -6,8 +6,10 @@ import { CLINICAL_CASES } from '../data/cases';
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
 import logoImg from '../assets/logo.png';
+import { useTranslation } from 'react-i18next';
 
 const Dashboard = ({ onStartCase }: { onStartCase: (caseData: any) => void }) => {
+  const { t } = useTranslation();
   const [profile, setProfile] = useState<{name: string, studentId: string, role: string} | null>(null);
   const [latestLog, setLatestLog] = useState<any>(null);
   const [allLogs, setAllLogs] = useState<any[]>([]);
@@ -51,18 +53,8 @@ const Dashboard = ({ onStartCase }: { onStartCase: (caseData: any) => void }) =>
             setLatestLog(logsData[0]);
           }
           
-          // Fetch Deployed Cases
-          const casesQuery = query(collection(db, 'cases'));
-          const casesSnap = await getDocs(casesQuery);
-          const customCases: any[] = [];
-          casesSnap.forEach(doc => {
-            const data = doc.data();
-            if (data.status === 'deployed' || !data.status) {
-              customCases.push({ id: doc.id, ...data });
-            }
-          });
-          
-          setAvailableCases([...CLINICAL_CASES, ...customCases]);
+          // Custom cases fetching removed to keep only the 3 prototype cases
+          setAvailableCases([...CLINICAL_CASES]);
 
         } catch (e) {
           console.error("Error fetching logs", e);
@@ -204,30 +196,30 @@ const Dashboard = ({ onStartCase }: { onStartCase: (caseData: any) => void }) =>
           {latestLog ? (
             <>
               <div 
-                onClick={() => alert(`กำลังดาวน์โหลดไฟล์: ${latestLog.assignedTier === 'Low' ? 'L2. NeuroAnatomy.pdf' : latestLog.assignedTier === 'Mid' ? 'L11. Somatosensory system_2024.pdf' : 'L30. Cerebrovascular disease 200269.pdf'}... (Simulated)`)}
+                onClick={() => alert(`กำลังดาวน์โหลดไฟล์: ${latestLog.assignedTier === 'Low' ? 'L14. Parasitic infection.pdf' : latestLog.assignedTier === 'Mid' ? 'L17. Intro Pulmonary Medicine.pdf' : 'L24. Respiratory failure.pdf'}... (Simulated)`)}
                 className="bg-primary-container text-on-primary-container p-4 rounded-xl border border-primary-fixed-dim hover:bg-surface-variant cursor-pointer transition-colors relative"
               >
                 <div className="absolute top-0 right-0 bg-primary text-on-primary text-[10px] font-bold px-2 py-0.5 rounded-bl-lg rounded-tr-xl">Priority</div>
                 <div className="flex items-center gap-3 mb-2 mt-1">
                   <span className="material-symbols-rounded text-primary text-[24px]">menu_book</span>
                   <h3 className="font-label-md">
-                    {latestLog.assignedTier === 'Low' ? 'L2. NeuroAnatomy' : latestLog.assignedTier === 'Mid' ? 'L11. Somatosensory system_2024' : 'L30. Cerebrovascular disease 200269'}
+                    {latestLog.assignedTier === 'Low' ? 'L14. Parasitic Infection' : latestLog.assignedTier === 'Mid' ? 'L17. Intro Pulmonary Medicine' : 'L24. Respiratory Failure'}
                   </h3>
                 </div>
                 <p className="font-label-sm opacity-80 leading-relaxed">
-                  Based on your last score ({latestLog.preTestScore || 0}/9), review this to improve localization skills.
+                  Based on your last score ({latestLog.preTestScore || 0}/9), review this to improve diagnostic skills.
                 </p>
               </div>
 
               <div 
-                onClick={() => alert('กำลังดาวน์โหลดไฟล์: L9. Brainstem_KG67.pdf... (Simulated)')}
+                onClick={() => alert('กำลังดาวน์โหลดไฟล์: L23. Restrictive lung disease.pdf... (Simulated)')}
                 className="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant hover:border-primary cursor-pointer transition-colors"
               >
                 <div className="flex items-center gap-3 mb-2">
                   <span className="material-symbols-rounded text-on-surface-variant text-[24px]">description</span>
-                  <h3 className="font-label-md text-on-surface">L9. Brainstem_KG67</h3>
+                  <h3 className="font-label-md text-on-surface">L23. Restrictive Lung Disease</h3>
                 </div>
-                <p className="font-label-sm text-on-surface-variant leading-relaxed">Core syllabus review for brainstem syndromes.</p>
+                <p className="font-label-sm text-on-surface-variant leading-relaxed">Core syllabus review for pulmonary syndromes.</p>
               </div>
             </>
           ) : (
@@ -257,9 +249,9 @@ const Dashboard = ({ onStartCase }: { onStartCase: (caseData: any) => void }) =>
         
         {/* Header */}
         <section className="flex flex-col gap-2">
-          <h2 className="font-headline-xl text-on-surface">Welcome back, {profile?.name ? profile.name.split(' ')[0] : 'Doctor'}</h2>
+          <h2 className="font-headline-xl text-on-surface">{t('dashboard.title')} {profile?.name ? profile.name.split(' ')[0] : 'Doctor'}</h2>
           <p className="font-body-lg text-on-surface-variant max-w-2xl">
-            Ready to continue your neurological diagnostics? Select an assigned case below to begin the simulation.
+            {t('dashboard.subtitle')}
           </p>
         </section>
 
@@ -293,7 +285,7 @@ const Dashboard = ({ onStartCase }: { onStartCase: (caseData: any) => void }) =>
                   onClick={() => onStartCase(caseData)}
                   className="w-full bg-primary text-on-primary font-label-md px-6 py-3 rounded-full hover:bg-primary-fixed-variant transition-colors shadow-sm flex items-center justify-center gap-2"
                 >
-                  Enter Simulation
+                  {t('dashboard.start_case')}
                   <span className="material-symbols-rounded text-[20px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
                 </button>
               </div>
@@ -316,7 +308,7 @@ const Dashboard = ({ onStartCase }: { onStartCase: (caseData: any) => void }) =>
         <div id="tour-history" className="bg-surface-container-lowest border border-outline-variant rounded-xl flex flex-col shadow-sm overflow-hidden mt-4">
           <div className="p-5 border-b border-outline-variant flex items-center gap-3">
             <span className="material-symbols-rounded text-primary text-2xl">history</span>
-            <h3 className="font-headline-md text-on-surface text-xl">Case History</h3>
+            <h3 className="font-headline-md text-on-surface text-xl">{t('dashboard.recent_logs')}</h3>
           </div>
           
           <div className="overflow-x-auto">
@@ -396,8 +388,7 @@ const Dashboard = ({ onStartCase }: { onStartCase: (caseData: any) => void }) =>
             ) : (
               <div className="p-10 text-center text-on-surface-variant flex flex-col items-center">
                 <span className="material-symbols-rounded text-5xl opacity-50 mb-4">folder_open</span>
-                <p className="font-label-md">No case history found.</p>
-                <p className="font-body-sm mt-1">Complete a simulation to see your history here.</p>
+                <p className="font-label-md">{t('dashboard.no_logs')}</p>
               </div>
             )}
           </div>

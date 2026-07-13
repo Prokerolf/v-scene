@@ -20,7 +20,20 @@ export const drugOptions: DrugOption[] = [
   { id: '5', name: 'rt-PA (Alteplase)', category: 'จ', form: 'IV Infusion' },
   { id: '6', name: 'Warfarin', category: 'ก', form: 'Oral (Tablet)' },
   { id: '7', name: 'Mannitol', category: 'ก', form: 'IV Infusion' },
-  { id: '8', name: 'Dexamethasone', category: 'ก', form: 'IV Injection' },
+  { id: '8', name: 'Amoxicillin/Clavulanate', category: 'ก', form: 'Oral (Tablet)' },
+  { id: '9', name: 'Codeine', category: 'ค', form: 'Oral (Tablet)' },
+  { id: '10', name: 'Salbutamol MDI', category: 'ก', form: 'Inhaler' },
+  { id: '11', name: 'Praziquantel', category: 'ข', form: 'Oral (Tablet)' },
+  { id: '12', name: 'Ivermectin', category: 'ข', form: 'Oral (Tablet)' },
+  { id: '13', name: 'Albendazole', category: 'ก', form: 'Oral (Tablet)' },
+  { id: '14', name: 'Oseltamivir', category: 'ก', form: 'Oral (Tablet)' },
+  { id: '15', name: 'Remdesivir', category: 'จ', form: 'IV Infusion' },
+  { id: '16', name: 'Dexamethasone', category: 'ก', form: 'IV/Oral' },
+  { id: '17', name: 'Low-molecular-weight heparin (LMWH)', category: 'ค', form: 'Subcutaneous' },
+  { id: '18', name: 'High-Flow Nasal Cannula (HFNC)', category: 'ข', form: 'Oxygen Therapy' },
+  { id: '19', name: 'Non-invasive Positive Pressure Ventilation (BiPAP)', category: 'ค', form: 'Ventilation Support' },
+  { id: '20', name: 'Weight loss program / Bariatric consult', category: 'ก', form: 'Lifestyle' },
+  { id: '21', name: 'Oxygen Therapy (Nasal Cannula)', category: 'ก', form: 'Oxygen Therapy' },
 ];
 
 const TreatmentScene = ({ activeCase, onFinish, addLogAction, selectedDrugs, setSelectedDrugs }: { activeCase: any, onFinish: (drugs: string[], reason: string) => void, addLogAction: (dim: string, act: string, mis: string, tag: string) => void, selectedDrugs: string[], setSelectedDrugs: (v: string[]) => void }) => {
@@ -63,7 +76,7 @@ const TreatmentScene = ({ activeCase, onFinish, addLogAction, selectedDrugs, set
     setIsProcessing(true);
     setYenjaiHint(null);
 
-    const requiredDrugs = activeCase?.goldStandardTreatment || [];
+    const requiredDrugs = activeCase?.goldStandardDrugs || [];
     const missingDrugs = requiredDrugs.filter((id: string) => !selectedDrugs.includes(id));
     const correctPicks = selectedDrugs.filter((id: string) => requiredDrugs.includes(id));
     setConfirmedCorrectDrugs(correctPicks);
@@ -85,7 +98,7 @@ const TreatmentScene = ({ activeCase, onFinish, addLogAction, selectedDrugs, set
         try {
           const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
           const genAI = new GoogleGenerativeAI(apiKey);
-          const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+          const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
           
           const missingDrugNames = missingDrugs.map((id: string) => drugOptions.find(d => d.id === id)?.name).join(', ');
           

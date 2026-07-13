@@ -13,16 +13,20 @@ interface LabOption {
 }
 
 export const labOptions: LabOption[] = [
-  { id: '1', name: 'CT Brain non-contrast', isGoldStandardFor: 'r/o Hemorrhage / Acute Stroke', category: 'Imaging' },
-  { id: '2', name: 'MRI Brain', isGoldStandardFor: 'Acute Ischemic Stroke / Infarction', category: 'Imaging' },
-  { id: '3', name: 'Complete Blood Count (CBC)', category: 'Hematology' },
-  { id: '4', name: 'Coagulogram (PT, aPTT, INR)', category: 'Hematology' },
+  { id: '1', name: 'CT Brain non-contrast', category: 'Imaging' },
+  { id: '2', name: 'MRI Brain', category: 'Imaging' },
+  { id: '3', name: 'Complete Blood Count (CBC)', category: 'Hematology', isGoldStandardFor: 'Basic infection screening' },
+  { id: '4', name: 'Pulmonary Function Test (PFT) & Spirometry', category: 'Pulmonology', isGoldStandardFor: 'Restrictive/Obstructive lung defects' },
   { id: '5', name: 'BUN, Creatinine', category: 'Chemistry' },
   { id: '6', name: 'Electrolytes (Na, K, Cl, CO2)', category: 'Chemistry' },
-  { id: '7', name: 'Fasting Blood Sugar (FBS)', category: 'Chemistry' },
+  { id: '7', name: 'Chest X-ray (PA upright)', category: 'Imaging', isGoldStandardFor: 'Pulmonary infiltrates/effusion' },
   { id: '8', name: 'Lipid Profile', category: 'Chemistry' },
-  { id: '9', name: 'Electrocardiogram (EKG 12 leads)', isGoldStandardFor: 'r/o Atrial Fibrillation', category: 'Cardiology' },
-  { id: '10', name: 'Echocardiogram', category: 'Cardiology' },
+  { id: '9', name: 'Electrocardiogram (EKG 12 leads)', category: 'Cardiology' },
+  { id: '10', name: 'Sputum Examination (AFB, Smear, Parasite)', category: 'Microbiology', isGoldStandardFor: 'Pulmonary TB and Parasites' },
+  { id: '11', name: 'CT Chest with Contrast', category: 'Imaging' },
+  { id: '12', name: 'SARS-CoV-2 RT-PCR', category: 'Microbiology', isGoldStandardFor: 'COVID-19 diagnosis' },
+  { id: '13', name: 'Arterial Blood Gas (ABG)', category: 'Chemistry', isGoldStandardFor: 'Respiratory Failure Assessment' },
+  { id: '14', name: 'C-reactive protein (CRP)', category: 'Chemistry' },
 ];
 
 const LabOrderScene = ({ activeCase, addLogAction, onFinish, selectedLabs, setSelectedLabs }: { activeCase: any, addLogAction: (dim: string, act: string, mis: string, tag: string) => void, onFinish: (labs: string[], reason: string) => void, selectedLabs: string[], setSelectedLabs: (labs: string[]) => void }) => {
@@ -104,7 +108,7 @@ const LabOrderScene = ({ activeCase, addLogAction, onFinish, selectedLabs, setSe
         try {
           const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
           const genAI = new GoogleGenerativeAI(apiKey);
-          const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+          const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
           
           const missingLabNames = missingLabs.map((id: string) => labOptions.find(l => l.id === id)?.name).join(', ');
           

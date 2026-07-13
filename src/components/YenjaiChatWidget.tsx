@@ -100,7 +100,7 @@ const YenjaiChatWidget: React.FC<YenjaiChatWidgetProps> = ({ patientCase, contex
 
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
       
       const contextChat = contextMessages 
         ? contextMessages.filter(m => m.sender !== 'system').map(m => `${m.sender === 'student' ? 'หมอ' : 'คนไข้'}: ${m.text}`).join('\n')

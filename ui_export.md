@@ -108,7 +108,7 @@ const TeacherDashboard = () => {
       if (!apiKey) return setAiFeedback('ไม่พบ API Key');
 
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
 
       const transcript = log.chatHistory.map(m => `${m.role === 'user' ? 'Student' : 'Patient'}: ${m.text}`).join('\n');
       const ddx = log.submittedDDx.join(', ');
@@ -145,7 +145,7 @@ const TeacherDashboard = () => {
     try {
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
 
       const prompt = `
         คุณเป็นระบบสร้างเคสผู้ป่วยจำลอง (Patient Persona Generator) สำหรับให้นักศึกษาแพทย์ฝึกซักประวัติ
@@ -637,7 +637,7 @@ const HistoryTakingScene = ({ onFinish, onBack }: { onFinish: () => void, onBack
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ 
-        model: "gemini-2.5-flash",
+        model: "gemini-3.5-flash",
         safetySettings: [
           { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
           { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -724,7 +724,7 @@ const HistoryTakingScene = ({ onFinish, onBack }: { onFinish: () => void, onBack
 
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
       const chatHistory = messages
         .filter(m => m.sender !== 'system')
         .map(m => `${m.sender === 'student' ? 'หมอ' : patientCase?.patientName}: ${m.text}`)

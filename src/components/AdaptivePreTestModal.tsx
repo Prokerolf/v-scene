@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, X, BrainCircuit, Bot, ChevronRight, Loader2 } from 'lucide-react';
-import { PRE_TEST_QUESTIONS } from '../data/cases';
+import type { ClinicalCase } from '../data/cases';
 
-const AdaptivePreTestModal = ({ onClose, onCancel, addLogAction }: { onClose: (score: number, answers: number[]) => void, onCancel?: () => void, addLogAction: (dim: string, act: string, mis: string, tag: string) => void }) => {
+const AdaptivePreTestModal = ({ caseData, onClose, onCancel, addLogAction }: { caseData: ClinicalCase, onClose: (score: number, answers: number[]) => void, onCancel?: () => void, addLogAction: (dim: string, act: string, mis: string, tag: string) => void }) => {
   const [step, setStep] = useState(0); // 0 = Intro, 1-9 = Questions, 10 = Loading
   const [answers, setAnswers] = useState<number[]>([]);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  
+  const PRE_TEST_QUESTIONS = caseData.preTestQuestions || [];
 
   const currentQuestion = step - 1;
 
@@ -48,6 +50,10 @@ const AdaptivePreTestModal = ({ onClose, onCancel, addLogAction }: { onClose: (s
     }, 2500);
   };
 
+  if (!PRE_TEST_QUESTIONS || PRE_TEST_QUESTIONS.length === 0) {
+    return null; // Don't render if no questions
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-scrim/40 backdrop-blur-md transition-all duration-300 font-body-md">
       <div className="bg-surface-container-lowest rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200 border border-outline-variant">
@@ -88,8 +94,8 @@ const AdaptivePreTestModal = ({ onClose, onCancel, addLogAction }: { onClose: (s
                   <Bot className="w-10 h-10" />
                 </div>
                 <div>
-                  <h2 className="text-3xl font-headline-lg font-bold text-on-surface">Adaptive Pre-Test (Neuroanatomy)</h2>
-                  <p className="text-on-surface-variant mt-2 text-lg">แบบทดสอบสั้น 9 ข้อ เพื่อให้ AI เตรียมเคสที่เหมาะสมกับคุณที่สุด</p>
+                  <h2 className="text-3xl font-headline-lg font-bold text-on-surface">Adaptive Pre-Test (Respiratory System)</h2>
+                  <p className="text-on-surface-variant mt-2 text-lg">แบบทดสอบสั้น {PRE_TEST_QUESTIONS.length} ข้อ เพื่อให้ AI เตรียมเคสที่เหมาะสมกับคุณที่สุด</p>
                 </div>
               </div>
               <div className="bg-secondary-container/20 border border-secondary-fixed-dim p-6 rounded-2xl">

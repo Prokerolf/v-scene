@@ -9,142 +9,142 @@ export interface GatewayQuestion {
 export const GATEWAY_QUESTIONS: GatewayQuestion[] = [
   {
     id: "g1",
-    question: "Which of the following describes the function of the Primary Motor Cortex?",
-    options: ["Sensory processing", "Voluntary motor execution", "Visual processing", "Auditory reception"],
-    correctAnswerIndex: 1,
-    relatedSlide: "Slide 12: Motor Cortices"
+    question: "Which structure prevents food from entering the trachea during swallowing?",
+    options: ["Epiglottis", "Larynx", "Pharynx", "Uvula"],
+    correctAnswerIndex: 0,
+    relatedSlide: "Respiratory Anatomy: Upper Airway"
   },
   {
     id: "g2",
-    question: "Which artery supplies the medial surface of the frontal and parietal lobes?",
-    options: ["Middle Cerebral Artery (MCA)", "Anterior Cerebral Artery (ACA)", "Posterior Cerebral Artery (PCA)", "Basilar Artery"],
-    correctAnswerIndex: 1,
-    relatedSlide: "Slide 15: Cerebral Blood Supply"
+    question: "What is the primary site of gas exchange in the lungs?",
+    options: ["Bronchioles", "Trachea", "Alveoli", "Bronchi"],
+    correctAnswerIndex: 2,
+    relatedSlide: "Respiratory Anatomy: Alveoli"
   },
   {
     id: "g3",
-    question: "A lesion in Broca's area leads to which of the following?",
-    options: ["Expressive aphasia", "Receptive aphasia", "Visual agnosia", "Ataxia"],
-    correctAnswerIndex: 0,
-    relatedSlide: "Slide 18: Cortical Areas & Aphasia"
+    question: "Which muscle is primarily responsible for resting inspiration?",
+    options: ["Internal intercostals", "Diaphragm", "Abdominal muscles", "Sternocleidomastoid"],
+    correctAnswerIndex: 1,
+    relatedSlide: "Respiratory Physiology: Muscles of Respiration"
   },
   {
     id: "g4",
-    question: "Which spinal tract is primarily responsible for pain and temperature sensation?",
-    options: ["Dorsal Column Medial Lemniscus", "Lateral Spinothalamic Tract", "Corticospinal Tract", "Spinocerebellar Tract"],
+    question: "What is the normal resting tidal volume (VT) in an average adult?",
+    options: ["150 mL", "500 mL", "1200 mL", "3000 mL"],
     correctAnswerIndex: 1,
-    relatedSlide: "Slide 22: Spinal Cord Tracts"
+    relatedSlide: "Lung Volumes and Capacities"
   },
   {
     id: "g5",
-    question: "Which cranial nerve is responsible for facial expression?",
-    options: ["CN V", "CN VII", "CN IX", "CN X"],
+    question: "Which cell type in the alveoli produces surfactant?",
+    options: ["Type I pneumocytes", "Type II pneumocytes", "Alveolar macrophages", "Goblet cells"],
     correctAnswerIndex: 1,
-    relatedSlide: "Slide 30: Cranial Nerves"
+    relatedSlide: "Alveolar Histology"
   },
   {
     id: "g6",
-    question: "The anterior choroidal artery (AChorA) supplies which of the following structures?",
-    options: ["Medial aspect of frontal lobe", "Choroid plexus of the lateral ventricle", "Primary visual cortex", "Pons and medulla"],
+    question: "What is the effect of surfactant on alveolar surface tension?",
+    options: ["Increases surface tension", "Decreases surface tension", "Has no effect", "Increases fluid leakage"],
     correctAnswerIndex: 1,
-    relatedSlide: "Blood supply Slide 12: Anterior choroidal artery"
+    relatedSlide: "Respiratory Physiology: Surfactant"
   },
   {
     id: "g7",
-    question: "Which branch of the anterior cerebral artery (ACA) supplies the head of the caudate nucleus and anterior limb of the internal capsule?",
-    options: ["Recurrent artery of Heubner", "Pericallosal artery", "Frontopolar artery", "Callosomarginal artery"],
-    correctAnswerIndex: 0,
-    relatedSlide: "Blood supply Slide 15: Central branches of ACA"
+    question: "In a normal healthy individual, the drive to breathe is primarily regulated by which central chemoreceptor stimulus?",
+    options: ["Decreased PaO2", "Increased PaCO2", "Decreased pH in blood", "Increased HCO3-"],
+    correctAnswerIndex: 1,
+    relatedSlide: "Control of Breathing"
   },
   {
     id: "g8",
-    question: "A patient presents with weakness and sensory loss in the contralateral leg more than the arm. Which artery is most likely occluded?",
-    options: ["Middle cerebral artery (MCA)", "Anterior cerebral artery (ACA)", "Posterior cerebral artery (PCA)", "Anterior choroidal artery"],
+    question: "Which of the following describes the Bohr effect?",
+    options: ["O2 binding increases CO2 affinity", "CO2 and H+ decrease hemoglobin's affinity for O2", "O2 binding decreases CO2 affinity", "CO2 binding increases O2 affinity"],
     correctAnswerIndex: 1,
-    relatedSlide: "Blood supply Slide 16: Cortical branches of ACA"
+    relatedSlide: "Gas Transport in Blood"
   },
   {
     id: "g9",
-    question: "The primary motor and somatosensory cortices for the face and upper extremity are supplied by which artery?",
-    options: ["Anterior cerebral artery", "Middle cerebral artery (M4 branch)", "Posterior cerebral artery", "Anterior choroidal artery"],
+    question: "What is the anatomical dead space volume in a typical adult?",
+    options: ["50 mL", "150 mL", "350 mL", "500 mL"],
     correctAnswerIndex: 1,
-    relatedSlide: "Blood supply Slide 18: Middle cerebral artery"
+    relatedSlide: "Ventilation and Dead Space"
   },
   {
     id: "g10",
-    question: "Which arteries supply the body of the caudate, globus pallidus, and putamen?",
-    options: ["Thalamoperforating arteries", "Medial striate arteries", "Lenticulostriate arteries", "Pontine arteries"],
+    question: "A rightward shift of the oxygen-hemoglobin dissociation curve is caused by:",
+    options: ["Decreased temperature", "Decreased 2,3-BPG", "Decreased pH (acidosis)", "Decreased PCO2"],
     correctAnswerIndex: 2,
-    relatedSlide: "Blood supply Slide 19: Central branches of MCA"
+    relatedSlide: "Oxygen Dissociation Curve"
   },
   {
     id: "g11",
-    question: "The posterior inferior cerebellar artery (PICA) arises from which artery?",
-    options: ["Basilar artery", "Internal carotid artery", "Vertebral artery", "Posterior cerebral artery"],
-    correctAnswerIndex: 2,
-    relatedSlide: "Blood supply Slide 24: PICA"
+    question: "Which nerve innervates the diaphragm?",
+    options: ["Vagus nerve", "Phrenic nerve", "Intercostal nerves", "Accessory nerve"],
+    correctAnswerIndex: 1,
+    relatedSlide: "Respiratory Anatomy: Innervation"
   },
   {
     id: "g12",
-    question: "Which structure is formed at the base of the brain to join the carotid and vertebrobasilar systems?",
-    options: ["Circle of Willis", "Cavernous sinus", "Great cerebral vein of Galen", "Straight sinus"],
-    correctAnswerIndex: 0,
-    relatedSlide: "Blood supply Slide 32: Circle of Willis"
+    question: "What is the normal ratio of FEV1 to FVC (FEV1/FVC) in a healthy adult?",
+    options: ["< 50%", "~ 60%", "> 75-80%", "> 95%"],
+    correctAnswerIndex: 2,
+    relatedSlide: "Spirometry and Pulmonary Function Tests"
   },
   {
     id: "g13",
-    question: "Which dural venous sinus is formed by the union of the great cerebral vein and the inferior sagittal sinus?",
-    options: ["Superior sagittal sinus", "Straight sinus", "Transverse sinus", "Sigmoid sinus"],
+    question: "In obstructive lung diseases (e.g., Asthma, COPD), what typical change is seen in spirometry?",
+    options: ["Increased FEV1/FVC ratio", "Decreased FEV1/FVC ratio (< 70%)", "Decreased Total Lung Capacity", "Normal FEV1"],
     correctAnswerIndex: 1,
-    relatedSlide: "Blood supply Slide 35: Dural venous sinuses"
+    relatedSlide: "Pathophysiology: Obstructive Disease"
   },
   {
     id: "g14",
-    question: "Which fissure separates the two cerebral hemispheres?",
-    options: ["Sylvian fissure", "Central sulcus", "Longitudinal (interhemispheric) fissure", "Calcarine fissure"],
-    correctAnswerIndex: 2,
-    relatedSlide: "Cerebrum Slide 18: Longitudinal fissure"
+    question: "Which type of hypoxia is caused by a right-to-left cardiac shunt?",
+    options: ["Hypoxic hypoxia", "Anemic hypoxia", "Circulatory hypoxia", "Histotoxic hypoxia"],
+    correctAnswerIndex: 0,
+    relatedSlide: "Causes of Hypoxemia"
   },
   {
     id: "g15",
-    question: "The primary auditory cortex is located in which area?",
-    options: ["Superior temporal gyrus (Heschl's gyrus)", "Precentral gyrus", "Postcentral gyrus", "Occipital lobe"],
-    correctAnswerIndex: 0,
-    relatedSlide: "Cerebrum Slide 41: Temporal lobe"
+    question: "What is the primary pathological mechanism in Asthma?",
+    options: ["Alveolar destruction", "Reversible airway inflammation and bronchoconstriction", "Irreversible airway dilation", "Pulmonary fibrosis"],
+    correctAnswerIndex: 1,
+    relatedSlide: "Asthma Pathophysiology"
   },
   {
     id: "g16",
-    question: "A patient with Wernicke's aphasia primarily exhibits which of the following?",
-    options: ["Nonfluent speech with good comprehension", "Fluent speech with poor comprehension", "Inability to repeat words with intact comprehension", "Loss of all language capabilities"],
-    correctAnswerIndex: 1,
-    relatedSlide: "Cerebrum Slide 51: Aphasic syndromes"
+    question: "Which drug class is considered the first-line 'reliever' therapy for an acute asthma attack?",
+    options: ["Inhaled Corticosteroids (ICS)", "Long-acting beta-agonists (LABA)", "Short-acting beta-agonists (SABA)", "Leukotriene receptor antagonists"],
+    correctAnswerIndex: 2,
+    relatedSlide: "Pharmacology: Asthma Management"
   },
   {
     id: "g17",
-    question: "Which area of the brain is known as the primary visual cortex (BA 17)?",
-    options: ["Superior parietal lobule", "Calcarine cortex", "Angular gyrus", "Orbitofrontal cortex"],
+    question: "What is the most common bacterial pathogen causing Community-Acquired Pneumonia (CAP)?",
+    options: ["Staphylococcus aureus", "Streptococcus pneumoniae", "Mycoplasma pneumoniae", "Pseudomonas aeruginosa"],
     correctAnswerIndex: 1,
-    relatedSlide: "Cerebrum Slide 43: Occipital lobe"
+    relatedSlide: "Infectious Disease: Pneumonia"
   },
   {
     id: "g18",
-    question: "Gerstmann's syndrome (including agraphia and acalculia) is typically caused by a lesion in which area?",
-    options: ["Medial frontal lobe", "Inferior parietal lobule (Left side)", "Right superior temporal gyrus", "Occipital pole"],
+    question: "Which physical examination finding is classic for pleural effusion?",
+    options: ["Hyperresonance on percussion", "Dullness on percussion", "Wheezing", "Increased tactile fremitus"],
     correctAnswerIndex: 1,
-    relatedSlide: "Cerebrum Slide 36: Parietal lobe"
+    relatedSlide: "Respiratory Physical Examination"
   },
   {
     id: "g19",
-    question: "The ascending reticular activating system (ARAS), responsible for the level of consciousness, is located in which structures?",
-    options: ["Bilateral diencephalon, midbrain, and upper pons", "Cerebellum and medulla", "Occipital and parietal lobes", "Basal ganglia and amygdala"],
-    correctAnswerIndex: 0,
-    relatedSlide: "Cerebrum Slide 60: Anatomy of consciousness"
+    question: "A patient presents with sudden severe chest pain, shortness of breath, absent breath sounds on the right, and tracheal deviation to the left. Diagnosis?",
+    options: ["Asthma exacerbation", "Pneumonia", "Tension pneumothorax", "Pulmonary embolism"],
+    correctAnswerIndex: 2,
+    relatedSlide: "Respiratory Emergencies"
   },
   {
     id: "g20",
-    question: "Which type of fibers connect the left and right cerebral hemispheres, such as the corpus callosum?",
-    options: ["Association fibers", "Projection fibers", "Commissural fibers", "Corticospinal fibers"],
-    correctAnswerIndex: 2,
-    relatedSlide: "Cerebrum Slide 8: Connection fibers"
+    question: "What is the immediate life-saving intervention for a tension pneumothorax?",
+    options: ["Chest X-ray", "Needle thoracostomy (decompression)", "Intravenous antibiotics", "Inhaled bronchodilators"],
+    correctAnswerIndex: 1,
+    relatedSlide: "Management of Tension Pneumothorax"
   }
 ];

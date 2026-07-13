@@ -8,87 +8,6 @@ export interface PreTestQuestion {
   difficulty?: string;
 }
 
-export const PRE_TEST_QUESTIONS: PreTestQuestion[] = [
-  {
-    id: 1,
-    question: 'เซลล์ชนิดใดทำหน้าที่สร้าง Myelin sheath ในระบบประสาทส่วนกลาง (CNS)?',
-    options: ['Schwann cell', 'Astrocyte', 'Oligodendrocyte', 'Microglia'],
-    correctAnswerIndex: 2,
-    explanation: 'Oligodendrocyte ทำหน้าที่สร้าง myelin sheath ให้กับ axon ในระบบประสาทส่วนกลาง (CNS) ในขณะที่ Schwann cell สร้าง myelin sheath ในระบบประสาทส่วนปลาย (PNS)',
-    category: 'L2. NeuroAnatomy - Histology of Nervous Tissues_2026'
-  },
-  {
-    id: 2,
-    difficulty: 'Easy',
-    question: 'บริเวณใดของสมองที่ทำหน้าที่เป็นศูนย์ควบคุมการทำงานของระบบประสาทอัตโนมัติ (ANS) ที่สำคัญที่สุด?',
-    options: ['Thalamus', 'Hypothalamus', 'Medulla oblongata', 'Cerebellum'],
-    correctAnswerIndex: 1,
-    explanation: 'Hypothalamus เป็นศูนย์กลางหลักในการควบคุมระบบประสาทอัตโนมัติ (ANS) และระบบต่อมไร้ท่อ เพื่อรักษาสมดุลของร่างกาย (Homeostasis)',
-    category: 'L14. Diencephalon_2024'
-  },
-  {
-    id: 3,
-    difficulty: 'Easy',
-    question: 'Sensory decussation ของ Dorsal column-medial lemniscus pathway เกิดขึ้นที่ระดับใด?',
-    options: ['Spinal cord', 'Lower Medulla', 'Midbrain', 'Thalamus'],
-    correctAnswerIndex: 1,
-    explanation: 'DCML pathway มีการไขว้สลับ (decussation) ของ second-order neuron ที่ lower medulla กลายเป็น medial lemniscus ก่อนจะวิ่งขึ้นไปยัง Thalamus',
-    category: 'L11. Somatosensory system_2024'
-  },
-  {
-    id: 4,
-    question: 'ผู้ป่วยมีอาการสูญเสีย Pain and Temperature sensation ที่ซีกซ้ายของร่างกาย รอยโรค (Lesion) น่าจะอยู่ที่ใด?',
-    options: ['Right Spinothalamic tract', 'Left Spinothalamic tract', 'Right Dorsal column', 'Left Dorsal column'],
-    correctAnswerIndex: 0,
-    explanation: 'Spinothalamic tract นำความรู้สึกเจ็บปวดและอุณหภูมิ โดยไขว้สลับที่ระดับไขสันหลัง ดังนั้นรอยโรคที่ Right Spinothalamic tract จะทำให้เสียความรู้สึกที่ซีกซ้ายของร่างกาย',
-    category: 'L11. Somatosensory system_2024'
-  },
-  {
-    id: 5,
-    difficulty: 'Moderate',
-    question: 'การบาดเจ็บที่ Corticospinal tract ที่ระดับ Internal capsule ซีกขวา จะส่งผลอย่างไร?',
-    options: ['Ipsilateral flaccid paralysis', 'Contralateral spastic hemiparesis', 'Ipsilateral loss of proprioception', 'Contralateral loss of pain'],
-    correctAnswerIndex: 1,
-    explanation: 'Corticospinal tract ไขว้สลับที่ Medulla (Pyramidal decussation) รอยโรคที่ Internal capsule ซีกขวาซึ่งอยู่เหนือการไขว้สลับ จึงทำให้เกิดอัมพาตแบบเกร็งที่ซีกซ้าย (Contralateral spastic hemiparesis)',
-    category: 'L17 Descending motor system'
-  },
-  {
-    id: 6,
-    difficulty: 'Moderate',
-    question: 'ผู้ป่วยมีอาการสูญเสียการรับรู้ตำแหน่ง (Proprioception) และการสั่น (Vibration) ที่ขาทั้งสองข้าง รอยโรคอยู่ที่ใด?',
-    options: ['Anterior spinothalamic tract', 'Lateral spinothalamic tract', 'Fasciculus cuneatus', 'Fasciculus gracilis'],
-    correctAnswerIndex: 3,
-    explanation: 'Fasciculus gracilis นำสัญญาณ Proprioception และ Vibration จากส่วนล่างของร่างกาย (ขาและลำตัวส่วนล่าง) ในขณะที่ Fasciculus cuneatus นำสัญญาณจากแขนและลำตัวส่วนบน',
-    category: 'L11. Somatosensory system_2024'
-  },
-  {
-    id: 7,
-    difficulty: 'Hard',
-    question: 'ผู้ป่วยถูกแทงที่สันหลังซีกขวา (Right hemisection) ระดับ T10 จะพบอาการใด?',
-    options: ['Loss of pain on right leg, loss of proprioception on left leg', 'Loss of pain on left leg, loss of proprioception on right leg', 'Bilateral loss of pain and temperature', 'Bilateral flaccid paralysis of legs'],
-    correctAnswerIndex: 1,
-    explanation: 'Brown-Séquard syndrome ทำให้สูญเสีย Proprioception ในฝั่งเดียวกัน (Ipsilateral) และสูญเสีย Pain/Temp ในฝั่งตรงข้าม (Contralateral) ต่ำกว่าระดับรอยโรค',
-    category: 'L31. Spine and Spinal Cord Disorders'
-  },
-  {
-    id: 8,
-    difficulty: 'Hard',
-    question: 'ผู้ป่วยมีอาการกลืนลำบาก, เสียงแหบ, เดินเซ, และสูญเสีย Pain/Temp ที่หน้าซีกขวาและลำตัวซีกซ้าย (Wallenberg syndrome) รอยโรคอยู่ที่ใด?',
-    options: ['Right Lateral Medulla', 'Left Lateral Medulla', 'Right Medial Medulla', 'Left Medial Pons'],
-    correctAnswerIndex: 0,
-    explanation: 'Wallenberg syndrome เกิดจากการอุดตันของหลอดเลือด PICA ที่ไปเลี้ยง Lateral Medulla ทำให้เสียการรับรู้ความเจ็บปวดและอุณหภูมิที่ใบหน้าฝั่งเดียวกัน แต่สูญเสียที่ลำตัวฝั่งตรงข้าม',
-    category: 'L9. Brainstem_KG67'
-  },
-  {
-    id: 9,
-    question: 'ผู้ป่วยชายอายุ 60 ปี มาด้วยอาการอ่อนแรงครึ่งซีกขวาแบบเฉียบพลัน ร่วมกับมี Aphasia (พูดไม่รู้เรื่อง) รอยโรคน่าจะอยู่ที่หลอดเลือดเส้นใด?',
-    options: ['Left Anterior Cerebral Artery (ACA)', 'Left Middle Cerebral Artery (MCA)', 'Right Middle Cerebral Artery (MCA)', 'Basilar Artery'],
-    correctAnswerIndex: 1,
-    explanation: 'Left MCA หล่อเลี้ยงสมองซีกซ้ายด้านข้าง ควบคุมการเคลื่อนไหวของหน้า/แขนขวา และเป็นตำแหน่งของศูนย์ควบคุมภาษา (Broca\'s / Wernicke\'s area)',
-    category: 'L30. Cerebrovascular disease 200269'
-  }
-];
-
 export interface ClinicalCase {
   id: string;
   tier: 'Low' | 'Mid' | 'High';
@@ -125,132 +44,352 @@ export interface ClinicalCase {
       imageUrl?: string;
     };
   };
+  preTestQuestions: PreTestQuestion[];
 }
 
 export const CLINICAL_CASES: ClinicalCase[] = [
   {
-    id: 'case_mca_stroke',
-    tier: 'Low', // Score 0-3
-    diseaseName: 'Acute MCA Ischemic Stroke',
-    patientName: 'คุณสมชาย ใจดี',
-    age: 65,
-    gender: 'Male',
-    chiefComplaint: 'แขนขาซีกขวาอ่อนแรงกะทันหัน พูดไม่ชัด (Sudden right hemiparesis and dysarthria)',
-    caseConstraints: [
-      'Onset time: 2 ชั่วโมง (อยู่ในช่วง Golden Period)',
-      'ไม่มีข้อห้ามในการให้ยาละลายลิ่มเลือด',
-      'CT Brain: No hemorrhage'
-    ],
-    localization: 'Left Middle Cerebral Artery (MCA) Territory - Frontal and Parietal lobes',
-    etiology: 'Thrombosis / Embolism (Ischemic)',
-    goldStandardLabs: ['1'], // CT Brain (Only the absolute essential for acute stroke decision)
-    goldStandardDrugs: ['5'], // rt-PA (because onset is 2 hours)
-    contraindicatedDrugs: ['4', '6'], // Clopidogrel/Warfarin usually not immediate if giving rt-PA, but let's just mark rt-PA as the required gold standard.
-    personaDetails: 'อาชีพขับแท็กซี่ จู่ๆ ก็อ่อนแรงซีกขวา แก้วน้ำหลุดมือ พูดอ้อแอ้ ฟังรู้เรื่องแต่พูดไม่ชัด ตกใจมาก รีบให้ลูกพาส่ง รพ. เป็นความดันแต่ไม่ค่อยกินยา',
-    voiceProfile: 'old_male',
-    ddxKeywords: ['stroke', 'ischemic stroke', 'mca', 'infarction', 'cva'],
-    finalDiagnosisKeywords: ['acute ischemic stroke', 'left mca infarction', 'mca stroke'],
-    vitals: {
-      bp: '180/100',
-      hr: 85,
-      rr: 18,
-      temp: 37.0,
-      spo2: 98,
-      weight: 75,
-      height: 165
-    },
-    ddxGroup: 'กลุ่มโรคหลอดเลือดสมอง (Cerebrovascular Disease / Stroke)',
-    ddxExplanation: 'อาการแขนขาอ่อนแรงซีกขวากะทันหันและพูดไม่ชัด บ่งชี้ถึงความผิดปกติของระบบประสาทส่วนกลางที่เกิดขึ้นเฉียบพลัน (Sudden onset) ซึ่งเข้าได้กับกลุ่มโรคหลอดเลือดสมองมากที่สุด',
-    diagnosisExplanation: 'อาการอ่อนแรงซีกขวาและพูดไม่ชัด (Aphasia/Dysarthria) บ่งชี้ตำแหน่งรอยโรคที่สมองซีกซ้าย (Left MCA territory) และเนื่องจากเกิดขึ้นเฉียบพลันโดย CT ไม่พบเลือดออก จึงเข้าได้กับ Acute Ischemic Stroke',
-    specificLabResults: {
-      '1': {
-        text: '**CT Brain non-contrast:**\n- No acute intracranial hemorrhage.\n- Subtle loss of insular ribbon on the left side.\n- Hyperdense MCA sign (left).',
-        imageUrl: 'https://images.unsplash.com/photo-1559757175-5700dde675bc?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80' // Placeholder CT
-      },
-      '9': {
-        text: '**EKG 12 leads:**\n- Normal sinus rhythm at 85 bpm.\n- No ST-T wave changes.\n- **No evidence of Atrial Fibrillation.**'
-      }
-    }
-  },
-  {
-    id: 'case_brown_sequard',
-    tier: 'Mid', // Score 4-6
-    diseaseName: 'Brown-Séquard Syndrome',
-    patientName: 'คุณวิชัย แสงทอง',
+    id: 'case_paragonimus',
+    tier: 'Low',
+    diseaseName: 'Pulmonary Paragonimiasis',
+    patientName: 'คุณครู สมหมาย',
     age: 32,
     gender: 'Male',
-    chiefComplaint: 'ถูกแทงที่หลังด้านขวา ขาขวาขยับไม่ได้ ขาซ้ายไม่รู้สึกเจ็บ (Stab wound, right leg paralysis, left leg loss of pain)',
+    chiefComplaint: 'ไอเรื้อรัง มีเสมหะปนเลือดเป็นๆ หายๆ มา 3 เดือน',
     caseConstraints: [
-      'Traumatic spinal cord injury',
-      'Need urgent MRI Thoracic Spine',
-      'Do not give Thrombolytics!'
+      '3 เดือนก่อนเริ่มไอแห้งๆ ต่อมามีเสมหะข้นขุ่น สีแดงเข้มคล้ายสนิมเหล็ก (Rusty brown sputum)',
+      'เจ็บแน่นหน้าอกเวลาไอ, มีไข้ต่ำๆ, เพลีย, นอนไม่หลับเพราะไอตอนกลางคืน, น้ำหนักลด 3 kg ใน 2 เดือน',
+      'ไม่สูบบุหรี่, ไม่มีประวัติสัมผัสวัณโรค',
+      '5 เดือนก่อนไปเดินป่าภาคเหนือ กินปูน้ำตกดิบแช่น้ำปลา (Raw mountain crabs)',
+      'กินยาปฏิชีวนะจากคลินิกหลายขนานแล้วไม่ดีขึ้น'
     ],
-    localization: 'Right Hemicord Lesion (Thoracic level)',
-    etiology: 'Trauma (Penetrating injury)',
-    goldStandardLabs: ['2'], // MRI Spine (mapped to ID 2 in specificLabResults)
-    goldStandardDrugs: ['8'], // Dexamethasone/Steroids for spinal cord injury (debatable, but common in exams)
-    contraindicatedDrugs: ['1', '4', '5', '6'], // No blood thinners for trauma!
-    personaDetails: 'วัยรุ่นทำงานก่อสร้าง ทะเลาะวิวาทถูกแทงที่หลังด้านขวา รู้สึกเจ็บปวดแผลมาก ขาขวาขยับไม่ได้เลย ส่วนขาซ้ายขยับได้แต่ถ้าหยิกจะไม่เจ็บ',
+    localization: 'Lung parenchyma (Right lower lobe predominance)',
+    etiology: 'Parasitic infection (Paragonimus species)',
+    goldStandardLabs: ['3', '10', '7'],
+    goldStandardDrugs: ['11'], 
+    contraindicatedDrugs: ['9'], 
+    personaDetails: 'ชายหนุ่มอายุ 32 ปี อาชีพคุณครู ชอบเดินทางท่องเที่ยวธรรมชาติและตั้งแคมป์ตามป่าเขา ตอนไปเที่ยวภาคเหนือเมื่อ 5 เดือนก่อนกินปูน้ำตกดิบกับเพื่อน ตอนนี้ไอหนักจนนอนไม่ได้ เสมหะออกมาเป็นสีสนิมเหล็ก กังวลว่าจะเป็นวัณโรคหรือโรคร้ายแรง',
     voiceProfile: 'young_male',
-    ddxKeywords: ['brown sequard', 'brown-sequard', 'spinal cord injury', 'hemicord'],
-    finalDiagnosisKeywords: ['brown-sequard syndrome', 'brown sequard'],
+    ddxKeywords: ['paragonimiasis', 'paragonimus', 'lung fluke', 'ascariasis', 'strongyloidiasis', 'ancylostomiasis', 'necatoriasis', 'พยาธิใบไม้ปอด'],
+    finalDiagnosisKeywords: ['pulmonary paragonimiasis', 'paragonimiasis'],
     vitals: {
-      bp: '130/80',
-      hr: 105,
-      rr: 20,
-      temp: 37.2,
-      spo2: 99,
+      bp: '120/75',
+      hr: 78,
+      rr: 18,
+      temp: 37.4, 
+      spo2: 98,
       weight: 65,
-      height: 175
+      height: 170
     },
-    ddxGroup: 'กลุ่มโรคไขสันหลังบาดเจ็บ (Spinal Cord Injury / Myelopathy)',
-    ddxExplanation: 'ประวัติถูกแทงที่หลังอย่างชัดเจนร่วมกับอาการอ่อนแรงและชาที่ขาสองข้างไม่เหมือนกัน เป็นกลุ่มอาการทางคลินิกที่บ่งชี้รอยโรคที่ระดับไขสันหลัง (Spinal cord)',
-    diagnosisExplanation: 'การอ่อนแรงขาขวา (Ipsilateral motor loss) และเสียการรับความรู้สึกเจ็บปวดที่ขาซ้าย (Contralateral pain/temp loss) เป็นลักษณะเฉพาะของการบาดเจ็บที่ไขสันหลังซีกขวา (Brown-Séquard Syndrome)',
+    ddxGroup: 'กลุ่มโรคติดเชื้อปรสิตในปอด (Pulmonary Parasitic Infection)',
+    ddxExplanation: 'อาการไอเรื้อรัง เสมหะสีสนิมเหล็ก (Rusty sputum) ประวัติกินปูดิบดิบ ร่วมกับภาวะ Eosinophilia สูง บ่งชี้ไปที่การติดเชื้อพยาธิใบไม้ปอด (Lung fluke) มากกว่าแบคทีเรียหรือวัณโรค',
+    diagnosisExplanation: 'ตรวจพบไข่พยาธิลักษณะผิวเรียบ สีน้ำตาลเหลือง มีฝาเปิดชัดเจน (Unembryonated egg with operculum) ในเสมหะ ยืนยันการวินิจฉัย Pulmonary Paragonimiasis ซี่งสอดคล้องกับภาพรังสีทรวงอกและการซักประวัติ',
     specificLabResults: {
-      '2': {
-        text: '**MRI Spine (Thoracic):**\n- **Right-sided hemicord injury** at T10 level.\n- Localized edema and soft tissue defect correlating with stab wound tract.',
-        imageUrl: 'https://images.unsplash.com/photo-1582719471384-894fbb16e074?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80' // Placeholder MRI
+      '3': {
+        text: '**Complete Blood Count (CBC):**\n- Hb: 13.2 g/dL\n- WBC: 11,500 /mcL\n- Differential: **Eosinophils 18% (High)**, Neutrophils 50%, Lymphocytes 30%, Monocytes 2%\n- *Impression: Marked Eosinophilia.*'
+      },
+      '10': {
+        text: '**Sputum Examination:**\n- **AFB stain:** Negative x 3 days\n- **Direct smear:** Numerous Eosinophils seen. **Positive for unembryonated eggs with operculum (smooth thick shell, golden-brown color).**\n- *Impression: Paragonimus eggs identified.*'
+      },
+      '7': {
+        text: '**Chest X-ray (PA upright):**\n- Pulmonary infiltrates at right lower lung zone.\n- Nodular cystic lesions (ring shadows) noted in the RLL.\n- Mild right pleural effusion.\n- No typical upper lobe cavitary lesions suggestive of TB.'
       }
-    }
+    },
+    preTestQuestions: [
+      {
+        id: 1,
+        question: 'การติดเชื้อพยาธิใบไม้ปอด (Paragonimiasis) มักเกิดจากพฤติกรรมความเสี่ยงใด?',
+        options: ['กินเนื้อหมูดิบ', 'กินปูน้ำจืดหรือกุ้งน้ำจืดดิบ', 'เดินเท้าเปล่าบนดิน', 'ยุงกัด'],
+        correctAnswerIndex: 1,
+        category: 'Parasitic Infection'
+      },
+      {
+        id: 2,
+        question: 'อาการทางคลินิกที่พบบ่อยและเป็นเอกลักษณ์ของผู้ป่วย Pulmonary Paragonimiasis คือข้อใด?',
+        options: ['ไอแห้งๆ ไม่มีเสมหะ', 'ไอเรื้อรัง เสมหะสีสนิมเหล็ก (Rusty sputum)', 'ไอเป็นเลือดสดปริมาณมาก', 'ไอเสียงก้อง (Barking cough)'],
+        correctAnswerIndex: 1,
+        category: 'Clinical Presentation'
+      },
+      {
+        id: 3,
+        question: 'ความผิดปกติใดในผลตรวจเลือด (CBC) ที่ช่วยชี้แนะถึงการติดเชื้อพยาธิใบไม้ปอด?',
+        options: ['Neutrophilia', 'Lymphocytosis', 'Eosinophilia', 'Basophilia'],
+        correctAnswerIndex: 2,
+        category: 'Laboratory Findings'
+      },
+      {
+        id: 4,
+        question: 'การวินิจฉัยยืนยัน (Definitive diagnosis) ของโรคพยาธิใบไม้ปอด อาศัยการตรวจพบสิ่งใด?',
+        options: ['Acid-Fast Bacilli ในเสมหะ', 'ไข่พยาธิลักษณะมีฝาเปิด (Operculum) ในเสมหะ', 'IgG antibody ต่อพยาธิใบไม้ตับ', 'Cysts ในภาพรังสีทรวงอก'],
+        correctAnswerIndex: 1,
+        category: 'Diagnosis'
+      },
+      {
+        id: 5,
+        question: 'ยาชนิดใดเป็นยาหลัก (Drug of choice) ในการรักษา Pulmonary Paragonimiasis?',
+        options: ['Albendazole', 'Mebendazole', 'Praziquantel', 'Ivermectin'],
+        correctAnswerIndex: 2,
+        category: 'Pharmacology'
+      },
+      {
+        id: 6,
+        question: 'ภาพรังสีทรวงอก (CXR) ของผู้ป่วย Pulmonary Paragonimiasis อาจพบรอยโรคใดที่เด่นชัด?',
+        options: ['Miliary nodules', 'Nodular cysts or ring shadows', 'Lobar consolidation', 'Tension pneumothorax'],
+        correctAnswerIndex: 1,
+        category: 'Radiology'
+      },
+      {
+        id: 7,
+        question: 'โรคติดเชื้อชนิดใดที่มักถูกวินิจฉัยผิด (Misdiagnosed) ว่าเป็น Paragonimiasis มากที่สุดในประเทศไทยเนื่องจากอาการคล้ายกัน?',
+        options: ['Pulmonary Tuberculosis', 'Lung Cancer', 'Bacterial Pneumonia', 'Asthma'],
+        correctAnswerIndex: 0,
+        category: 'Differential Diagnosis'
+      },
+      {
+        id: 8,
+        question: 'ระยะใดของพยาธิ Paragonimus westermani ที่เป็นระยะติดต่อ (Infective stage) เข้าสู่ร่างกายมนุษย์?',
+        options: ['Miracidium', 'Cercaria', 'Metacercaria', 'Adult worm'],
+        correctAnswerIndex: 2,
+        category: 'Parasite Life Cycle'
+      },
+      {
+        id: 9,
+        question: 'หลังจากที่พยาธิระยะ Metacercaria เข้าสู่ร่างกายมนุษย์ทางระบบทางเดินอาหาร มันจะไชทะลุอวัยวะใดเพื่อเดินทางไปที่ปอด?',
+        options: ['กระเพาะอาหารและตับ', 'ลำไส้และกะบังลม (Diaphragm)', 'หลอดอาหาร', 'เส้นเลือดดำใหญ่ (Vena cava)'],
+        correctAnswerIndex: 1,
+        category: 'Pathogenesis'
+      }
+    ]
   },
   {
-    id: 'case_wallenbergs',
-    tier: 'High', // Score 7-9
-    diseaseName: 'Lateral Medullary Syndrome (Wallenberg\'s)',
-    patientName: 'คุณอนันต์ สุขสม',
-    age: 58,
-    gender: 'Male',
-    chiefComplaint: 'เวียนศีรษะรุนแรง เดินเซ กลืนลำบาก เสียงแหบ ชาหน้าซีกซ้ายและลำตัวซีกขวา (Vertigo, dysphagia, crossed sensory loss)',
+    id: 'case_covid_pneumonia',
+    tier: 'Mid',
+    diseaseName: 'COVID-19 Pneumonia with Acute Hypoxemic Respiratory Failure',
+    patientName: 'คุณสมศรี รักสะอาด',
+    age: 45,
+    gender: 'Female',
+    chiefComplaint: 'Fever, dry cough, and worsening shortness of breath for 5 days.',
     caseConstraints: [
-      'Onset time: 5 ชั่วโมง (เกิน Golden Period สำหรับ IV rt-PA)',
-      'Atypical presentation requiring complex brainstem localization'
+      '5 days ago: high-grade fever, dry cough, generalized fatigue, poor appetite, loss of smell (anosmia).',
+      '3 days ago: progressively worsening shortness of breath and rapid breathing.',
+      'Close contact with a confirmed COVID-19 patient one week ago (shared meal without mask).',
+      'Past Medical History: T2DM for 2 years (on Glipizide, Metformin), Obesity (BMI = 35 kg/m²).'
     ],
-    localization: 'Left Lateral Medulla (PICA territory)',
-    etiology: 'Infarction of Posterior Inferior Cerebellar Artery (PICA)',
-    goldStandardLabs: ['2'], // MRI Brain (better for posterior fossa)
-    goldStandardDrugs: ['1', '2'], // Aspirin, Atorvastatin (Secondary prevention, no rt-PA)
-    contraindicatedDrugs: ['5'], // rt-PA contraindicated (Onset > 4.5 hrs)
-    personaDetails: 'พ่อค้าขายข้าวมันไก่ ตื่นมา 5 ชั่วโมงก่อนแล้วบ้านหมุนรุนแรง อ้วกตลอด กลืนน้ำลายลำบาก เสียงแหบพร่า รู้สึกชาๆ ที่หน้าซีกซ้ายและลำตัวซีกขวา เดินเซเหมือนคนเมา',
-    voiceProfile: 'old_male',
-    ddxKeywords: ['wallenberg', 'lateral medullary', 'pica syndrome'],
-    finalDiagnosisKeywords: ['wallenberg syndrome', 'lateral medullary syndrome'],
+    localization: 'Lungs (Bilateral diffuse alveolar infiltrates)',
+    etiology: 'SARS-CoV-2 (Severe acute respiratory syndrome coronavirus 2)',
+    goldStandardLabs: ['12', '7', '13', '14', '3'], 
+    goldStandardDrugs: ['15', '16', '17', '18'], 
+    contraindicatedDrugs: [], 
+    personaDetails: 'หญิงไทยอายุ 45 ปี เป็นแม่บ้าน รูปร่างอ้วนและมีโรคประจำตัวเป็นเบาหวาน มีไข้สูง ไอแห้งๆ อ่อนเพลีย กินข้าวไม่ได้และจมูกไม่ได้กลิ่นมา 5 วัน หายใจหอบเหนื่อยมากจนต้องมา รพ. กังวลมากเพราะเพิ่งไปกินข้าวกับเพื่อนที่ติดโควิดมาสัปดาห์ก่อน',
+    voiceProfile: 'old_female',
+    ddxKeywords: ['covid', 'covid-19', 'covid 19', 'community acquired pneumonia', 'heart failure', 'pulmonary embolism', 'sars-cov-2'],
+    finalDiagnosisKeywords: ['covid-19 pneumonia', 'covid pneumonia', 'acute hypoxemic respiratory failure'],
     vitals: {
-      bp: '150/90',
-      hr: 82,
-      rr: 16,
-      temp: 36.8,
-      spo2: 97,
-      weight: 70,
-      height: 168
+      bp: '112/64',
+      hr: 105,
+      rr: 35,
+      temp: 39.0,
+      spo2: 88,
+      weight: 90,
+      height: 160
     },
-    ddxGroup: 'กลุ่มโรคก้านสมอง (Brainstem Syndrome / Posterior Circulation Stroke)',
-    ddxExplanation: 'อาการเวียนศีรษะ เดินเซ กลืนลำบาก และเสียงแหบ เป็นกลุ่มอาการที่บ่งชี้ถึงความผิดปกติของระบบประสาทในส่วนก้านสมองและสมองน้อย (Posterior fossa)',
-    diagnosisExplanation: 'อาการชาหน้าซ้าย ชาตัวขวา (Crossed sensory loss) ร่วมกับเวียนศีรษะ กลืนลำบาก และเดินเซ บ่งชี้ตำแหน่งรอยโรคที่ก้านสมองส่วน Lateral Medulla ซีกซ้าย (Wallenberg Syndrome)',
+    ddxGroup: 'กลุ่มโรคติดเชื้อไวรัสทางเดินหายใจรุนแรง (Severe Viral Respiratory Infection)',
+    ddxExplanation: 'อาการไข้ ไอแห้ง หอบเหนื่อย หายใจเร็ว SpO2 ต่ำ ร่วมกับภาวะ Anosmia (สูญเสียการได้กลิ่น) และประวัติสัมผัสผู้ป่วยยืนยัน บ่งชี้ไปทางโรคติดเชื้อ COVID-19 อย่างชัดเจน',
+    diagnosisExplanation: 'ผล RT-PCR สำหรับ SARS-CoV-2 เป็นบวก ภาพรังสีพบ Bilateral diffuse alveolar infiltrates และผล ABG เข้าได้กับ Acute Hypoxemic Respiratory Failure ยืนยันการวินิจฉัย COVID-19 Pneumonia',
     specificLabResults: {
-      '2': {
-        text: '**MRI Brain:**\n- **Acute restricted diffusion in the left lateral medulla.**\n- Preserved pons and midbrain.\n- Finding is consistent with acute infarction in the left PICA territory.',
-        imageUrl: 'https://images.unsplash.com/photo-1559757175-5700dde675bc?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80' // Placeholder MRI
+      '12': {
+        text: '**SARS-CoV-2 RT-PCR:**\n- **Positive (Detected)**'
+      },
+      '7': {
+        text: '**Chest X-ray (PA upright):**\n- **Bilateral diffuse alveolar infiltrates** with peripheral and lower lung predominance.\n- No pleural effusion.\n- Normal cardiac size.'
+      },
+      '13': {
+        text: '**Arterial Blood Gas (Room Air):**\n- pH: 7.48\n- PaCO2: 25 mmHg\n- PaO2: 55 mmHg\n- HCO3-: 21 mEq/L\n- *Impression: Uncompensated respiratory alkalosis with severe hypoxemia (Type I Respiratory Failure).*'
+      },
+      '14': {
+        text: '**C-reactive protein (CRP):**\n- 100 mg/L (Normal <1 mg/L)'
+      },
+      '3': {
+        text: '**Complete Blood Count (CBC):**\n- WBC: 4,000 /uL (Neutrophils 60%, Lymphocytes 30%)\n- Hb: 12 g/dL\n- Plt: 250,000 /uL\n- *Impression: Normal WBC count with relative lymphopenia common in viral infection.*'
       }
-    }
+    },
+    preTestQuestions: [
+      {
+        id: 1,
+        question: 'อาการทางคลินิกใดที่พบได้บ่อยและค่อนข้างจำเพาะเจาะจงในผู้ป่วย COVID-19 ระยะแรก?',
+        options: ['ไอมีเสมหะสีเขียว', 'สูญเสียการได้กลิ่น (Anosmia)', 'เจ็บหน้าอกแปลบๆ เวลาหายใจ', 'ไอเป็นเลือด'],
+        correctAnswerIndex: 1,
+        category: 'Clinical Presentation'
+      },
+      {
+        id: 2,
+        question: 'ภาวะ Acute Hypoxemic Respiratory Failure (Type I) มีลักษณะผล Arterial Blood Gas (ABG) อย่างไร?',
+        options: ['PaO2 ต่ำ, PaCO2 สูง', 'PaO2 ต่ำ, PaCO2 ปกติหรือต่ำ', 'PaO2 ปกติ, PaCO2 สูง', 'PaO2 สูง, PaCO2 ปกติ'],
+        correctAnswerIndex: 1,
+        category: 'Respiratory Physiology'
+      },
+      {
+        id: 3,
+        question: 'ภาพรังสีทรวงอก (CXR) ในผู้ป่วยรุนแรงจาก COVID-19 Pneumonia มักมีลักษณะอย่างไร?',
+        options: ['Bilateral peripheral alveolar infiltrates', 'Unilateral lobar consolidation', 'Large pleural effusion', 'Apical cavitary lesions'],
+        correctAnswerIndex: 0,
+        category: 'Radiology'
+      },
+      {
+        id: 4,
+        question: 'ยาต้านการอักเสบกลุ่มใดที่ได้รับการพิสูจน์แล้วว่าช่วยลดอัตราการเสียชีวิตในผู้ป่วย COVID-19 ที่ต้องการออกซิเจน?',
+        options: ['NSAIDs (เช่น Ibuprofen)', 'Corticosteroids (เช่น Dexamethasone)', 'Antihistamines', 'Leukotriene receptor antagonists'],
+        correctAnswerIndex: 1,
+        category: 'Pharmacology'
+      },
+      {
+        id: 5,
+        question: 'การบำบัดด้วยออกซิเจนแบบ High-Flow Nasal Cannula (HFNC) มีกลไกหลักอย่างไรที่เหนือกว่า Nasal Cannula ธรรมดา?',
+        options: ['ให้ยาขยายหลอดลมผสมไปกับออกซิเจนได้', 'ให้อัตราการไหลสูงและสร้างแรงดันบวก (PEEP) อ่อนๆ', 'ไม่ต้องใช้น้ำให้ความชื้น', 'ลดคาร์บอนไดออกไซด์ได้ดีกว่าเครื่องช่วยหายใจ'],
+        correctAnswerIndex: 1,
+        category: 'Respiratory Support'
+      },
+      {
+        id: 6,
+        question: 'ผู้ป่วย COVID-19 รุนแรงมักได้รับยา Low-molecular-weight heparin (LMWH) เพื่อจุดประสงค์ใด?',
+        options: ['ลดการอักเสบในปอด', 'ป้องกันภาวะหลอดเลือดดำอุดตัน (VTE Prophylaxis)', 'ฆ่าเชื้อไวรัส', 'รักษาภาวะน้ำท่วมปอด'],
+        correctAnswerIndex: 1,
+        category: 'Complication Management'
+      },
+      {
+        id: 7,
+        question: 'การตรวจวินิจฉัยยืนยัน (Gold standard) การติดเชื้อ SARS-CoV-2 ในระยะเฉียบพลันคือวิธีใด?',
+        options: ['Chest X-ray', 'RT-PCR จากสิ่งส่งตรวจทางเดินหายใจ', 'Rapid Antigen Test (ATK)', 'Serology (IgG/IgM)'],
+        correctAnswerIndex: 1,
+        category: 'Diagnosis'
+      },
+      {
+        id: 8,
+        question: 'ยาต้านไวรัสชนิดใดที่มักบริหารทางหลอดเลือดดำ (IV) สำหรับรักษาผู้ป่วย COVID-19 ปอดอักเสบ?',
+        options: ['Oseltamivir', 'Acyclovir', 'Remdesivir', 'Favipiravir'],
+        correctAnswerIndex: 2,
+        category: 'Antiviral Therapy'
+      },
+      {
+        id: 9,
+        question: 'ปัจจัยเสี่ยง (Risk factors) ใดที่สัมพันธ์กับความรุนแรงของโรค COVID-19 มากที่สุด?',
+        options: ['อายุ < 20 ปี', 'โรคหอบหืดที่ควบคุมได้', 'โรคเบาหวานและภาวะอ้วน (Obesity)', 'ประวัติการผ่าตัดไส้ติ่ง'],
+        correctAnswerIndex: 2,
+        category: 'Risk Factors'
+      }
+    ]
+  },
+  {
+    id: 'case_diaphragmatic_paralysis',
+    tier: 'High', 
+    diseaseName: 'Bilateral Diaphragmatic Paralysis',
+    patientName: 'คุณทรงพล คนสู้ชีวิต',
+    age: 55,
+    gender: 'Male',
+    chiefComplaint: 'เหนื่อยหอบเวลานอนราบ (Orthopnea) เรื้อรัง และง่วงนอนมากในเวลากลางวัน',
+    caseConstraints: [
+      'เหนื่อยหอบเวลานอนราบ (Orthopnea) และมีอาการเหมือนจะขาดใจเวลานอนราบ',
+      'มีอาการแน่นหน้าอกและหายใจไม่ออกเฉียบพลันในเวลากลางคืน (Acute nocturnal dyspnea) จนสะดุ้งตื่น',
+      'ไป ER หลายครั้ง ได้ยาปฏิชีวนะ ยาขับปัสสาวะ และให้ออกซิเจนที่บ้าน แต่อาการไม่ดีขึ้น',
+      'มีโรคประจำตัว: HTN, DLP, T2DM',
+      'อดีตเคยตกจากต้นไม้และได้รับการวินิจฉัยว่ามีกระดูกสันหลังส่วนคอบาดเจ็บ (Previous C-spine injury)'
+    ],
+    localization: 'Diaphragm / Phrenic Nerve (C3, C4, C5)',
+    etiology: 'Phrenic nerve injury secondary to previous cervical spine trauma, exacerbated by obesity.',
+    goldStandardLabs: ['4', '13', '7'], 
+    goldStandardDrugs: ['19', '20', '21'],
+    contraindicatedDrugs: ['2', '9'], 
+    personaDetails: 'ชายไทยวัย 55 ปี รูปร่างอ้วน อดีตคนงานก่อสร้างที่เคยตกต้นไม้จนเจ็บคอเรื้อรัง ตอนนี้บ่นเหนื่อยมากเวลานอนหงาย สะดุ้งตื่นมาหอบกลางดึกบ่อยๆ กลางวันก็ง่วงซึมตลอดเวลา ไปฉุกเฉินมาหลายรอบหมอให้ยาขับปัสสาวะกับยาฆ่าเชื้อก็ไม่หาย เหนื่อยล้าและท้อแท้มาก',
+    voiceProfile: 'old_male',
+    ddxKeywords: ['diaphragmatic paralysis', 'bilateral diaphragmatic paralysis', 'obesity hypoventilation syndrome', 'ohs', 'pulmonary edema', 'heart failure'],
+    finalDiagnosisKeywords: ['bilateral diaphragmatic paralysis', 'diaphragmatic paralysis'],
+    vitals: {
+      bp: '130/80', 
+      hr: 82, 
+      rr: 20, 
+      temp: 36.8,
+      spo2: 88, 
+      weight: 110,
+      height: 170
+    },
+    ddxGroup: 'กลุ่มโรคกล้ามเนื้อหายใจอ่อนแรงและภาวะอ้วน (Respiratory Muscle Weakness & Obesity-related conditions)',
+    ddxExplanation: 'อาการเหนื่อยหอบเวลานอนราบ (Orthopnea) ร่วมกับประวัติอุบัติเหตุที่กระดูกสันหลังส่วนคอ (C-spine injury) บ่งชี้ปัญหาที่เส้นประสาท Phrenic Nerve ที่เลี้ยงกะบังลม ทำให้กะบังลมทำงานไม่ได้',
+    diagnosisExplanation: 'ผล Spirometry ในท่านอนราบพบค่า VC ลดลงถึง 20% ร่วมกับ ABG เป็น Chronic respiratory acidosis เข้าได้กับ Bilateral Diaphragmatic Paralysis ที่มีอาการแย่ลงจากภาวะอ้วน (Obesity)',
+    specificLabResults: {
+      '4': {
+        text: '**Pulmonary Function Test (PFT) & Spirometry (Upright):**\n- TLC: 44.2% predicted\n- VC: 37.6% predicted\n- RV: 127% predicted\n- FVC: 38.6% predicted\n- FEV1: 39.3% predicted\n- DLCO: 88%, DLCO/VA: 80%\n- MIP: 36 cmH2O (Decreased)\n- MEP: 70 cmH2O\n\n**Spirometry (Supine position):**\n- **VC decreased by 20%** compared to upright position.\n- *Impression: Severe restrictive lung defect with significant supine worsening, highly suggestive of diaphragmatic weakness/paralysis.*'
+      },
+      '13': {
+        text: '**Arterial Blood Gas (Room air):**\n- pH: 7.42\n- pCO2: 54 mmHg (Hypercapnia)\n- pO2: 63 mmHg (Hypoxemia)\n- HCO3-: 40.9 mEq/L (Metabolic compensation)\n- SaO2: 88.2%\n- *Impression: Fully compensated chronic respiratory acidosis.*'
+      },
+      '7': {
+        text: '**Chest X-ray (PA upright):**\n- Elevated hemidiaphragms bilaterally.\n- Decreased lung volumes.\n- No evidence of pulmonary edema or acute infiltrates.'
+      }
+    },
+    preTestQuestions: [
+      {
+        id: 1,
+        question: 'กล้ามเนื้อใดเป็นกล้ามเนื้อหลักที่ใช้ในการหายใจเข้า (Primary muscle of inspiration)?',
+        options: ['Internal intercostals', 'Diaphragm (กะบังลม)', 'Sternocleidomastoid', 'Abdominal rectus'],
+        correctAnswerIndex: 1,
+        category: 'Respiratory Anatomy'
+      },
+      {
+        id: 2,
+        question: 'กะบังลม (Diaphragm) ได้รับการควบคุมและสั่งการจากเส้นประสาทใด?',
+        options: ['Vagus nerve (CN X)', 'Phrenic nerve', 'Intercostal nerves', 'Hypoglossal nerve'],
+        correctAnswerIndex: 1,
+        category: 'Neuroanatomy'
+      },
+      {
+        id: 3,
+        question: 'เส้นประสาท Phrenic Nerve มีรากประสาท (Nerve roots) มาจากระดับใดของไขสันหลังส่วนคอ?',
+        options: ['C1, C2, C3', 'C3, C4, C5', 'C5, C6, C7', 'C7, T1, T2'],
+        correctAnswerIndex: 1,
+        category: 'Spinal Cord Anatomy'
+      },
+      {
+        id: 4,
+        question: 'อาการหอบเหนื่อยที่รุนแรงขึ้นเวลานอนราบ เรียกว่าอะไร?',
+        options: ['Platypnea', 'Trepopnea', 'Orthopnea', 'Paroxysmal nocturnal dyspnea'],
+        correctAnswerIndex: 2,
+        category: 'Clinical Symptoms'
+      },
+      {
+        id: 5,
+        question: 'เหตุใดผู้ป่วยที่มีภาวะ Diaphragmatic Paralysis ทั้งสองข้าง จึงมีอาการหอบเหนื่อยรุนแรงเวลานอนราบ (Supine)?',
+        options: ['เลือดดำไหลกลับเข้าหัวใจมากเกินไปจนน้ำท่วมปอด', 'อวัยวะในช่องท้องดันกะบังลมที่อ่อนแรงขึ้นไปในช่องอก', 'ทางเดินหายใจส่วนบนยุบตัว', 'ปริมาณออกซิเจนในเลือดลดลงจากแรงโน้มถ่วง'],
+        correctAnswerIndex: 1,
+        category: 'Pathophysiology'
+      },
+      {
+        id: 6,
+        question: 'ผลการตรวจสมรรถภาพปอด (Spirometry) ของผู้ป่วย Diaphragmatic paralysis มักพบความผิดปกติแบบใด?',
+        options: ['Obstructive defect', 'Restrictive defect', 'Mixed obstructive and restrictive defect', 'Normal lung function'],
+        correctAnswerIndex: 1,
+        category: 'Pulmonary Function Test'
+      },
+      {
+        id: 7,
+        question: 'การทำ Spirometry เปรียบเทียบระหว่างท่านั่ง (Upright) และท่านอนราบ (Supine) ในผู้ป่วยกะบังลมอัมพาต จะพบการเปลี่ยนแปลงใดที่เป็นเอกลักษณ์?',
+        options: ['ค่า FEV1/FVC ratio ลดลงมากในท่านอน', 'ค่า Vital Capacity (VC) ลดลงมากกว่า 20% ในท่านอน', 'ค่า Total Lung Capacity เพิ่มขึ้นในท่านอน', 'ไม่พบการเปลี่ยนแปลงใดๆ'],
+        correctAnswerIndex: 1,
+        category: 'Diagnostic Testing'
+      },
+      {
+        id: 8,
+        question: 'ผล Arterial Blood Gas (ABG) ของผู้ป่วยที่มีภาวะ Hypoventilation เรื้อรัง (Chronic Hypoventilation) มักพบภาวะใด?',
+        options: ['Metabolic Alkalosis', 'Uncompensated Respiratory Acidosis', 'Compensated Respiratory Acidosis (pCO2 สูง, HCO3- สูง)', 'Respiratory Alkalosis'],
+        correctAnswerIndex: 2,
+        category: 'Acid-Base Balance'
+      },
+      {
+        id: 9,
+        question: 'อุปกรณ์ใดเหมาะสมที่สุดในการช่วยสนับสนุนการหายใจสำหรับผู้ป่วย Bilateral Diaphragmatic Paralysis ที่ยังไม่ใส่ท่อช่วยหายใจ?',
+        options: ['Nasal cannula 3 LPM', 'Simple face mask 5 LPM', 'Non-invasive Positive Pressure Ventilation (NPPV / BiPAP)', 'High-Flow Nasal Cannula (HFNC)'],
+        correctAnswerIndex: 2,
+        category: 'Respiratory Support'
+      }
+    ]
   }
 ];

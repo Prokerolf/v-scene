@@ -1,6 +1,5 @@
 import React from 'react';
 import { AlertCircle, ArrowRight, Activity, BookOpen, Bot, Brain, BrainCircuit, CheckCircle2, ChevronRight, Lightbulb, Pill, ShieldCheck, TestTube, XCircle } from 'lucide-react';
-import { PRE_TEST_QUESTIONS } from '../data/cases';
 import { labOptions } from './LabOrderScene';
 import { drugOptions } from './TreatmentScene';
 
@@ -26,6 +25,7 @@ const SolutionScene = ({
   onFinish 
 }: SolutionSceneProps) => {
 
+  const PRE_TEST_QUESTIONS = patientCase?.preTestQuestions || [];
   const gaveContraindicated = patientCase?.contraindicatedDrugs?.some((d: string) => selectedDrugs.includes(d));
   const missedGoldStandardDrug = patientCase?.goldStandardDrugs?.some((d: string) => !selectedDrugs.includes(d));
   
@@ -34,9 +34,9 @@ const SolutionScene = ({
 
   // --- Holistic Recommendation Logic ---
   const getPreTestRec = () => {
-    if (preTestScore <= 3) return "It looks like you might need to review basic neuroanatomy, specifically functional areas of the cerebral cortex and vascular territories.";
-    if (preTestScore <= 6) return "Good foundational knowledge, but you might want to brush up on spinal cord tracts and brainstem syndromes.";
-    return "Excellent foundational knowledge! You are well-prepared for complex clinical neurology concepts.";
+    if (preTestScore <= 3) return "It looks like you might need to review basic anatomy and physiology related to this system.";
+    if (preTestScore <= 6) return "Good foundational knowledge, but you might want to brush up on specific pathologies and treatments.";
+    return "Excellent foundational knowledge! You are well-prepared for complex clinical concepts.";
   };
 
   const getHistoryRec = () => {
@@ -82,21 +82,21 @@ const SolutionScene = ({
         <section className="bg-surface-container-lowest rounded-3xl shadow-sm border border-outline-variant overflow-hidden">
           <div className="bg-surface-container px-6 py-5 border-b border-outline-variant flex items-center gap-3">
             <div className="bg-surface-container-high p-2.5 rounded-xl"><span className="material-symbols-rounded text-[24px] text-primary">psychology</span></div>
-            <h2 className="font-headline-md text-xl font-bold text-on-surface">Part A: Pre-test Review (Neuroanatomy)</h2>
+            <h2 className="font-headline-md text-xl font-bold text-on-surface">Part A: Pre-test Review</h2>
           </div>
           <div className="p-6 md:p-8">
             <div className="mb-8 flex flex-col md:flex-row items-center md:items-start gap-6 bg-surface-container-low p-6 rounded-2xl border border-outline-variant">
               <div className="w-20 h-20 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container font-black text-3xl shrink-0">
-                {preTestScore}/9
+                {preTestScore}/{PRE_TEST_QUESTIONS.length}
               </div>
               <div className="text-center md:text-left">
                 <p className="font-headline-md text-lg text-on-surface mb-2">Your pre-test score unlocked the <strong>"{patientCase?.tier}"</strong> difficulty tier for this case.</p>
-                <p className="font-body-md text-on-surface-variant">Reviewing foundational neuroanatomy concepts directly improves clinical localization accuracy.</p>
+                <p className="font-body-md text-on-surface-variant">Reviewing foundational concepts directly improves clinical localization accuracy.</p>
               </div>
             </div>
 
             <div className="space-y-6">
-              {PRE_TEST_QUESTIONS.map((q, idx) => {
+              {PRE_TEST_QUESTIONS.map((q: any, idx: number) => {
                 const isCorrect = preTestAnswers[idx] === q.correctAnswerIndex;
                 const studentAns = q.options[preTestAnswers[idx]];
                 const correctAns = q.options[q.correctAnswerIndex];

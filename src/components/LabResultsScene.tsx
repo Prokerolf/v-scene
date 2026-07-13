@@ -64,7 +64,7 @@ const LabResultsScene = ({ activeCase, selectedLabs, onNext }: LabResultsScenePr
         if (!apiKey) throw new Error('API Key is missing');
 
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
 
         for (const labId of aiLabIdsToFetch) {
           const labName = labOptions.find(l => l.id === labId)?.name || labId;

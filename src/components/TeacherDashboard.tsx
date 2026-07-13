@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { db, auth } from '../lib/firebase';
-import { collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { PRE_TEST_QUESTIONS } from '../data/cases';
+import { CLINICAL_CASES } from '../data/cases';
+import type { ClinicalCase } from '../data/cases';
 import { labOptions } from './LabOrderScene';
 import { drugOptions } from './TreatmentScene';
 import logoImg from '../assets/logo.png';
 import ReportBugWidget from './ReportBugWidget';
 import { CaseEditModal } from './CaseEditModal';
+import { ClassAnalyticsModal } from './ClassAnalyticsModal';
+import { useTranslation } from 'react-i18next';
 
 interface CaseLog {
   id: string;
@@ -25,6 +28,7 @@ interface CaseLog {
   assignedTier?: string;
   selectedLabs?: string[];
   selectedDrugs?: string[];
+  activeCaseId?: string;
   studentActionsLog?: any[];
   baselineKnowledgeLog?: {
     student_asked_summary?: string;
@@ -39,6 +43,11 @@ interface CaseLog {
   };
   teacherFeedback?: string;
   scratchpadNotes?: string;
+  ddxReason?: string;
+  labReason?: string;
+  diagnosisReason?: string;
+  drugReason?: string;
+  finalDiagnosis?: string;
 }
 
 interface PatientCase {
@@ -67,6 +76,7 @@ interface PatientCase {
       imageUrl?: string;
     };
   };
+  preTestQuestions?: any[];
 }
 
 interface BugReport {
@@ -80,6 +90,7 @@ interface BugReport {
 }
 
 const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => void }) => {
+  const { t } = useTranslation();
   const [logs, setLogs] = useState<CaseLog[]>([]);
   const [cases, setCases] = useState<PatientCase[]>([]);
   const [activeCaseId, setActiveCaseId] = useState<string | null>(null);
@@ -93,11 +104,36 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
   const [isSendingFeedback, setIsSendingFeedback] = useState(false);
 
   const [isCaseGenModalOpen, setIsCaseGenModalOpen] = useState(false);
+  const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
   const [diseaseInput, setDiseaseInput] = useState('');
   const [backgroundInput, setBackgroundInput] = useState('');
-  const [isGeneratingCase, setIsGeneratingCase] = useState(false);
   const [activeTab, setActiveTab] = useState<'monitoring' | 'approval' | 'bug_reports'>('monitoring');
   const [bugReports, setBugReports] = useState<BugReport[]>([]);
+  const [studentFilter, setStudentFilter] = useState<'all' | 'needs_help'>('all');
+
+  const resetToDefaultCases = async () => {
+    if (!confirm("Are you sure you want to reset all cases to the system defaults (3 Cases)? This will delete all current cases in the database.")) return;
+    setLoading(true);
+    try {
+      const casesSnapshot = await getDocs(collection(db, 'cases'));
+      const batch = writeBatch(db);
+      casesSnapshot.forEach(docSnap => {
+        batch.delete(docSnap.ref);
+      });
+      
+      for (const c of CLINICAL_CASES) {
+        const caseRef = doc(db, 'cases', c.id);
+        batch.set(caseRef, { ...c, status: 'deployed', timestamp: new Date().toISOString() });
+      }
+      
+      await batch.commit();
+      alert("Successfully synced cases to default!");
+      await fetchData();
+    } catch (e: any) {
+      alert("Error resetting cases: " + e.message);
+    }
+    setLoading(false);
+  };
 
   useEffect(() => {
     fetchData();
@@ -131,9 +167,20 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
 
       const casesSnapshot = await getDocs(collection(db, 'cases'));
       const casesData: PatientCase[] = [];
-      casesSnapshot.forEach((doc) => {
-        casesData.push({ id: doc.id, ...doc.data() } as PatientCase);
-      });
+      
+      if (casesSnapshot.empty) {
+        console.log("Migrating default cases to Firestore...");
+        for (const c of CLINICAL_CASES) {
+          const newCase = { ...c, status: 'deployed', timestamp: new Date().toISOString() };
+          await setDoc(doc(db, 'cases', c.id), newCase);
+          casesData.push(newCase as unknown as PatientCase);
+        }
+      } else {
+        casesSnapshot.forEach((doc) => {
+          casesData.push({ id: doc.id, ...doc.data() } as PatientCase);
+        });
+      }
+      
       casesData.sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime());
       setCases(casesData);
 
@@ -183,19 +230,21 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
       if (!apiKey) return setAiFeedback('ไม่พบ API Key');
 
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
 
       const transcript = log.chatHistory.map(m => `${m.role === 'user' ? 'Student' : 'Patient'}: ${m.text}`).join('\n');
       const ddx = log.submittedDDx && Array.isArray(log.submittedDDx) ? log.submittedDDx.join(', ') : (log.submittedDDx || 'ไม่ได้ระบุ');
       const labs = log.selectedLabs?.map(id => labOptions.find(l => l.id === id)?.name || id).join(', ') || 'ไม่ได้ระบุ';
       const drugs = log.selectedDrugs?.map(id => drugOptions.find(d => d.id === id)?.name || id).join(', ') || 'ไม่ได้ระบุ';
 
-      let preTestSummary = `คะแนน: ${log.preTestScore || 0}/9`;
-      if (log.preTestAnswers && Array.isArray(log.preTestAnswers)) {
+      const caseQuestions = cases.find(c => c.id === log.activeCaseId)?.preTestQuestions || CLINICAL_CASES.find(c => c.id === log.activeCaseId)?.preTestQuestions || [];
+      
+      let preTestSummary = `คะแนน: ${log.preTestScore || 0}/${caseQuestions.length || 9}`;
+      if (log.preTestAnswers && Array.isArray(log.preTestAnswers) && caseQuestions.length > 0) {
         const missedTopics: string[] = [];
         log.preTestAnswers.forEach((ansIndex, i) => {
-          if (PRE_TEST_QUESTIONS[i] && ansIndex !== PRE_TEST_QUESTIONS[i].correctAnswerIndex) {
-            missedTopics.push(PRE_TEST_QUESTIONS[i].category || `ข้อ ${i+1}`);
+          if (caseQuestions[i] && ansIndex !== caseQuestions[i].correctAnswerIndex) {
+            missedTopics.push(caseQuestions[i].category || `ข้อ ${i+1}`);
           }
         });
         if (missedTopics.length > 0) {
@@ -247,7 +296,7 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
     try {
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
 
       const prompt = `
         คุณเป็นระบบสร้างเคสผู้ป่วยจำลอง (Patient Persona Generator) สำหรับให้นักศึกษาแพทย์ฝึกซักประวัติ
@@ -308,7 +357,7 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
       {/* Desktop Navigation Drawer */}
       <nav className="hidden md:flex flex-col h-screen fixed left-0 top-0 pt-20 z-30 w-64 border-r border-outline-variant bg-surface-container-low">
         <div className="px-6 pb-6">
-          <h2 className="font-headline-md text-headline-md text-primary">Teacher Control</h2>
+          <h2 className="font-headline-md text-xl font-bold text-primary">{t('teacher.title')}</h2>
         </div>
         <ul className="flex-1 flex flex-col gap-2">
           {/* Active/Inactive classes based on state */}
@@ -322,7 +371,7 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
               }`}
             >
               <span className="material-symbols-rounded fill" data-icon="monitoring">monitoring</span>
-              <span className="font-label-md">Silent Monitoring</span>
+              <span className="font-label-md whitespace-nowrap">{t('teacher.monitoring')}</span>
             </button>
           </li>
           <li>
@@ -335,7 +384,7 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
               }`}
             >
               <span className="material-symbols-rounded" data-icon="edit_note">edit_document</span>
-              <span className="font-label-md">Case Approvals</span>
+              <span className="font-label-md whitespace-nowrap">{t('teacher.approvals')}</span>
             </button>
           </li>
           <li>
@@ -348,7 +397,7 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
               }`}
             >
               <span className="material-symbols-rounded">bug_report</span>
-              <span className="font-label-md">Bug Reports</span>
+              <span className="font-label-md whitespace-nowrap">{t('teacher.bugs')}</span>
               {bugReports.length > 0 && (
                 <span className="bg-error text-on-error text-xs px-2 py-0.5 rounded-full ml-auto">{bugReports.length}</span>
               )}
@@ -358,7 +407,7 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
         <div className="p-4 border-t border-outline-variant">
           <button onClick={handleLogout} className="w-full flex items-center gap-3 px-6 py-3 text-on-surface-variant hover:text-error hover:bg-error-container rounded-xl transition-colors font-label-md">
             <span className="material-symbols-rounded">logout</span>
-            Logout
+            {t('teacher.logout')}
           </button>
         </div>
       </nav>
@@ -372,7 +421,7 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
             <div className="h-14 md:h-20 overflow-hidden flex items-center justify-center">
               <img src={logoImg} alt="Bridge AI Logo" className="h-40 md:h-52 w-auto object-contain" />
             </div>
-            <h1 className="font-headline-md text-xl font-bold text-primary sm:hidden ml-2">Teacher Portal</h1>
+            <h1 className="font-headline-md text-xl font-bold text-primary sm:hidden ml-2">{t('teacher.portal')}</h1>
           </div>
           <div className="flex items-center gap-4">
             <button 
@@ -390,7 +439,7 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
             </div>
             {onSwitchToStudent && (
               <button onClick={onSwitchToStudent} className="hidden md:flex items-center gap-2 bg-surface-variant text-on-surface-variant px-4 py-2 rounded-full hover:bg-surface-container-highest transition-all font-label-md shadow-sm border border-outline-variant">
-                <span className="material-symbols-rounded text-[18px]">swap_horiz</span> Student View
+                <span className="material-symbols-rounded text-[18px]">swap_horiz</span> {t('teacher.student_view')}
               </button>
             )}
             <button onClick={handleLogout} className="md:hidden text-on-surface-variant p-2 hover:bg-error-container hover:text-error rounded-full">
@@ -403,48 +452,61 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
         <main className="flex-1 overflow-y-auto p-4 md:p-10 pb-24 md:pb-10 bg-surface w-full max-w-[1280px] mx-auto">
           <div className="flex justify-between items-end mb-8">
             <div>
-              <h2 className="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface mb-1">Teacher Dashboard</h2>
-              <p className="font-body-md text-on-surface-variant">Live telemetry and content review for students.</p>
+              <h2 className="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface mb-1">{t('teacher.dashboard_title')}</h2>
+              <p className="font-body-md text-on-surface-variant">{t('teacher.dashboard_subtitle')}</p>
             </div>
             <button className="hidden md:flex items-center gap-2 bg-primary text-on-primary px-6 py-2.5 rounded-full hover:bg-primary-fixed-variant transition-all font-label-md shadow-sm">
-              <span className="material-symbols-rounded text-[18px]">download</span> Export Report
+              <span className="material-symbols-rounded text-[18px]">download</span> {t('teacher.export')}
             </button>
           </div>
 
           {/* KPI Summary Grid (Bento style) */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 flex flex-col justify-between shadow-sm">
+            <div 
+              onClick={() => setIsAnalyticsModalOpen(true)}
+              className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 flex flex-col justify-between shadow-sm cursor-pointer hover:bg-surface-container-low transition-colors"
+            >
               <div className="flex items-center justify-between mb-4">
-                <span className="font-label-md text-on-surface-variant">Class Average Score</span>
+                <span className="font-label-md text-on-surface-variant">{t('teacher.class_avg')}</span>
                 <span className="material-symbols-rounded text-secondary text-2xl">analytics</span>
               </div>
               <div className="flex items-end gap-3">
                 <span className="font-headline-md text-[40px] text-primary leading-none">
                   {logs.length > 0 ? Math.round(logs.reduce((acc, log) => acc + (log.preTestScore || 0), 0) / logs.length / 9 * 100) : 0}%
                 </span>
-                <span className="font-label-sm text-secondary-fixed-dim mb-1 font-semibold">Based on Pre-Test</span>
+                <span className="font-label-sm text-secondary-fixed-dim mb-1 font-semibold">{t('teacher.based_on_pretest')}</span>
               </div>
             </div>
-            <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 flex flex-col justify-between shadow-sm">
+            <div 
+              onClick={() => { setActiveTab('approval'); }}
+              className={`border rounded-2xl p-6 flex flex-col justify-between shadow-sm cursor-pointer transition-colors ${
+                activeTab === 'approval' ? 'bg-surface-variant border-primary text-on-surface' : 'bg-surface-container-lowest border-outline-variant hover:bg-surface-container-low'
+              }`}
+            >
               <div className="flex items-center justify-between mb-4">
-                <span className="font-label-md text-on-surface-variant">AI Content Queue</span>
+                <span className="font-label-md text-on-surface-variant">{t('teacher.ai_queue')}</span>
                 <span className="material-symbols-rounded text-secondary text-2xl">edit_document</span>
               </div>
               <div className="flex items-end gap-3">
                 <span className="font-headline-md text-[40px] text-primary leading-none">{cases.length}</span>
-                <span className="font-label-sm text-on-surface-variant mb-1">Total Cases Available</span>
+                <span className="font-label-sm text-on-surface-variant mb-1">{t('teacher.total_cases')}</span>
               </div>
             </div>
-            <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 flex flex-col justify-between shadow-sm border-error/20">
+            <div 
+              onClick={() => { setActiveTab('monitoring'); setStudentFilter(studentFilter === 'needs_help' ? 'all' : 'needs_help'); }}
+              className={`border rounded-2xl p-6 flex flex-col justify-between shadow-sm cursor-pointer transition-colors border-error/20 ${
+                studentFilter === 'needs_help' ? 'bg-error-container text-on-error-container border-error' : 'bg-surface-container-lowest hover:bg-surface-container-low'
+              }`}
+            >
               <div className="flex items-center justify-between mb-4">
-                <span className="font-label-md text-on-surface-variant">Remediation Alerts</span>
+                <span className="font-label-md text-on-surface-variant">{t('teacher.alerts')}</span>
                 <span className="material-symbols-rounded text-error text-2xl">warning</span>
               </div>
               <div className="flex items-end gap-3">
-                <span className="font-headline-md text-[40px] text-error leading-none">
-                  {logs.filter(l => l.assignedTier === 'Low').length}
+                <span className={`font-headline-md text-[40px] leading-none ${studentFilter === 'needs_help' ? 'text-on-error-container' : 'text-error'}`}>
+                  {logs.filter(l => l.assignedTier === 'Low' || (l.preTestScore || 0) < 4).length}
                 </span>
-                <span className="font-label-sm text-on-surface-variant mb-1">Students flagged</span>
+                <span className="font-label-sm text-on-surface-variant mb-1">{t('teacher.students_flagged')}</span>
               </div>
             </div>
           </div>
@@ -452,17 +514,20 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
           {activeTab === 'monitoring' && (
             <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl overflow-hidden mb-8 shadow-sm">
               <div className="px-6 py-5 border-b border-outline-variant flex justify-between items-center bg-surface-bright">
-                <h3 className="font-headline-md text-2xl text-on-surface">Class Overview - Live Telemetry</h3>
-                {loading && <span className="font-label-sm text-secondary-fixed-dim animate-pulse">Fetching...</span>}
+                <h3 className="font-headline-md text-2xl text-on-surface">
+                  {t('teacher.class_overview')}
+                  {studentFilter === 'needs_help' && <span className="ml-2 text-sm bg-error text-on-error px-2 py-0.5 rounded-full">Filtered: Needs Help</span>}
+                </h3>
+                {loading && <span className="font-label-sm text-secondary-fixed-dim animate-pulse">{t('common.loading')}</span>}
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-surface-container-low/50">
-                      <th className="font-label-sm text-on-surface-variant px-6 py-4 border-b border-outline-variant font-bold uppercase tracking-wider">Student Name</th>
-                      <th className="font-label-sm text-on-surface-variant px-6 py-4 border-b border-outline-variant font-bold uppercase tracking-wider">Tier / Current Case</th>
-                      <th className="font-label-sm text-on-surface-variant px-6 py-4 border-b border-outline-variant font-bold uppercase tracking-wider">Pre-Test Score</th>
-                      <th className="font-label-sm text-on-surface-variant px-6 py-4 border-b border-outline-variant font-bold uppercase tracking-wider text-right">Action</th>
+                      <th className="font-label-sm text-on-surface-variant px-6 py-4 border-b border-outline-variant font-bold uppercase tracking-wider">{t('teacher.student_name')}</th>
+                      <th className="font-label-sm text-on-surface-variant px-6 py-4 border-b border-outline-variant font-bold uppercase tracking-wider">{t('teacher.tier')}</th>
+                      <th className="font-label-sm text-on-surface-variant px-6 py-4 border-b border-outline-variant font-bold uppercase tracking-wider">{t('teacher.pretest_score')}</th>
+                      <th className="font-label-sm text-on-surface-variant px-6 py-4 border-b border-outline-variant font-bold uppercase tracking-wider text-right">{t('teacher.action')}</th>
                     </tr>
                   </thead>
                   <tbody className="font-body-md">
@@ -471,7 +536,7 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
                         <td colSpan={4} className="px-6 py-8 text-center text-on-surface-variant">No student records found.</td>
                       </tr>
                     )}
-                    {logs.map(log => (
+                    {logs.filter(log => studentFilter === 'all' || log.assignedTier === 'Low' || (log.preTestScore || 0) < 4).map(log => (
                       <tr key={log.id} className="hover:bg-surface-container-low transition-colors">
                         <td className="px-6 py-4 border-b border-outline-variant">
                           <div className="text-on-surface font-semibold">{log.studentName}</div>
@@ -510,9 +575,9 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
                               setAiFeedback(''); 
                               setFeedbackMessage(log.teacherFeedback || ''); 
                             }}
-                            className="bg-primary text-on-primary px-4 py-2 rounded-full font-label-md hover:bg-primary-fixed-variant transition-colors shadow-sm inline-flex items-center gap-2"
+                            className="bg-primary text-on-primary px-3 py-1.5 rounded-full font-label-sm whitespace-nowrap hover:bg-primary-fixed-variant transition-colors shadow-sm inline-flex items-center gap-1.5"
                           >
-                            <span className="material-symbols-rounded text-[18px]">forum</span> Review
+                            <span className="material-symbols-rounded text-[16px]">forum</span> {t('teacher.review')}
                           </button>
                         </td>
                       </tr>
@@ -527,26 +592,34 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
             <div className="flex flex-col gap-6">
               <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                  <h3 className="font-headline-md text-2xl text-on-surface mb-1">Case Content Approval</h3>
-                  <p className="font-body-md text-on-surface-variant">Review, approve, and generate new simulated cases.</p>
+                  <h3 className="font-headline-md text-2xl text-on-surface mb-1">{t('teacher.case_approval_title')}</h3>
+                  <p className="font-body-md text-on-surface-variant">{t('teacher.case_approval_subtitle')}</p>
                 </div>
-                <button 
-                  onClick={() => setIsCaseGenModalOpen(true)}
-                  className="bg-primary text-on-primary font-label-md px-6 py-3 rounded-full hover:bg-primary-fixed-variant transition-colors shadow-sm flex items-center justify-center gap-2 w-full md:w-auto"
-                >
-                  <span className="material-symbols-rounded">add_circle</span> Generate New Case
-                </button>
+                <div className="flex gap-3 w-full md:w-auto">
+                  <button 
+                    onClick={resetToDefaultCases}
+                    className="bg-surface-variant text-on-surface-variant font-label-md px-6 py-3 rounded-full hover:bg-surface-container-highest transition-colors shadow-sm flex items-center justify-center gap-2 flex-1 md:flex-none whitespace-nowrap border border-outline-variant"
+                  >
+                    <span className="material-symbols-rounded">sync</span> ซิงค์เคสเริ่มต้น
+                  </button>
+                  <button 
+                    onClick={() => setIsCaseGenModalOpen(true)}
+                    className="bg-primary text-on-primary font-label-md px-6 py-3 rounded-full hover:bg-primary-fixed-variant transition-colors shadow-sm flex items-center justify-center gap-2 flex-1 md:flex-none whitespace-nowrap"
+                  >
+                    <span className="material-symbols-rounded">add_circle</span> {t('teacher.generate_new')}
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-8">
                 {/* Drafts Section */}
                 <div>
                   <h4 className="font-headline-sm text-lg text-on-surface mb-4 flex items-center gap-2">
-                    <span className="material-symbols-rounded text-secondary">draft</span> Draft Cases (Pending Review)
+                    <span className="material-symbols-rounded text-secondary">draft</span> {t('teacher.drafts')}
                   </h4>
                   {cases.filter(c => c.status === 'draft').length === 0 ? (
                     <div className="bg-surface-container-lowest border border-outline-variant border-dashed rounded-2xl p-8 text-center text-on-surface-variant">
-                      <p>No draft cases.</p>
+                      <p>{t('teacher.no_drafts')}</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -562,9 +635,9 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
                             <p className="font-body-sm text-secondary mt-2"><span className="material-symbols-rounded text-[14px] align-middle">warning</span> Needs lab review before deploy</p>
                           </div>
                           <div className="flex gap-3 mt-auto">
-                            <button onClick={() => setPreviewCase(c)} className="flex-1 bg-surface-container-low text-on-surface-variant font-label-md py-2.5 rounded-full border border-outline-variant hover:bg-surface-container transition-colors">Preview</button>
+                            <button onClick={() => setPreviewCase(c)} className="flex-1 bg-surface-container-low text-on-surface-variant font-label-md py-2.5 rounded-full border border-outline-variant hover:bg-surface-container transition-colors">{t('teacher.preview')}</button>
                             <button onClick={() => setEditingCase(c)} className="flex-1 bg-primary text-on-primary font-label-md py-2.5 rounded-full shadow-sm hover:bg-primary-fixed-variant transition-colors flex items-center justify-center gap-2">
-                              <span className="material-symbols-rounded text-[18px]">edit</span> Edit & Deploy
+                              <span className="material-symbols-rounded text-[18px]">edit</span> {t('teacher.edit_deploy')}
                             </button>
                           </div>
                         </div>
@@ -576,11 +649,11 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
                 {/* Deployed Section */}
                 <div>
                   <h4 className="font-headline-sm text-lg text-on-surface mb-4 flex items-center gap-2">
-                    <span className="material-symbols-rounded text-primary">cloud_done</span> Deployed Cases (Active for Students)
+                    <span className="material-symbols-rounded text-primary">cloud_done</span> {t('teacher.deployed')}
                   </h4>
                   {cases.filter(c => c.status === 'deployed' || !c.status).length === 0 ? (
                     <div className="bg-surface-container-lowest border border-outline-variant border-dashed rounded-2xl p-8 text-center text-on-surface-variant">
-                      <p>No deployed cases.</p>
+                      <p>{t('teacher.no_deployed')}</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -589,7 +662,7 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
                           <div className="flex justify-between items-start mb-4">
                             <h4 className="font-headline-md text-xl text-on-surface font-bold">{c.diseaseName}</h4>
                             <span className="bg-primary text-on-primary text-[10px] uppercase font-bold px-3 py-1 rounded-full flex items-center gap-1">
-                              <span className="material-symbols-rounded text-[12px]">check_circle</span> Deployed
+                              <span className="material-symbols-rounded text-[12px]">check_circle</span> {t('teacher.deployed')}
                             </span>
                           </div>
                           <div className="flex-1 space-y-2 mb-6">
@@ -597,9 +670,9 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
                             <p className="font-body-md text-on-surface-variant"><span className="font-label-md text-on-surface">CC:</span> {c.chiefComplaint}</p>
                           </div>
                           <div className="flex gap-3 mt-auto">
-                            <button onClick={() => setPreviewCase(c)} className="flex-1 bg-surface-container-low text-on-surface-variant font-label-md py-2.5 rounded-full border border-outline-variant hover:bg-surface-container transition-colors">Preview</button>
+                            <button onClick={() => setPreviewCase(c)} className="flex-1 bg-surface-container-low text-on-surface-variant font-label-md py-2.5 rounded-full border border-outline-variant hover:bg-surface-container transition-colors">{t('teacher.preview')}</button>
                             <button onClick={() => setEditingCase(c)} className="flex-1 bg-surface-container-highest text-on-surface font-label-md py-2.5 rounded-full hover:bg-outline-variant transition-colors flex items-center justify-center gap-2">
-                              <span className="material-symbols-rounded text-[18px]">edit</span> Edit
+                              <span className="material-symbols-rounded text-[18px]">edit</span> {t('teacher.edit')}
                             </button>
                           </div>
                         </div>
@@ -614,22 +687,22 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
             <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl overflow-hidden shadow-sm">
               <div className="px-6 py-5 border-b border-outline-variant flex justify-between items-center bg-surface-bright">
                 <h3 className="font-headline-md text-2xl text-on-surface flex items-center gap-2">
-                  <span className="material-symbols-rounded text-error">bug_report</span> Student Bug Reports
+                  <span className="material-symbols-rounded text-error">bug_report</span> {t('teacher.bug_reports_title')}
                 </h3>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-surface-container-low/50">
-                      <th className="font-label-sm text-on-surface-variant px-6 py-4 border-b border-outline-variant font-bold uppercase tracking-wider">Date / Time</th>
-                      <th className="font-label-sm text-on-surface-variant px-6 py-4 border-b border-outline-variant font-bold uppercase tracking-wider">Stage & Case</th>
-                      <th className="font-label-sm text-on-surface-variant px-6 py-4 border-b border-outline-variant font-bold uppercase tracking-wider">Report Description</th>
+                      <th className="font-label-sm text-on-surface-variant px-6 py-4 border-b border-outline-variant font-bold uppercase tracking-wider">{t('teacher.date_time')}</th>
+                      <th className="font-label-sm text-on-surface-variant px-6 py-4 border-b border-outline-variant font-bold uppercase tracking-wider">{t('teacher.stage_case')}</th>
+                      <th className="font-label-sm text-on-surface-variant px-6 py-4 border-b border-outline-variant font-bold uppercase tracking-wider">{t('teacher.description')}</th>
                     </tr>
                   </thead>
                   <tbody className="font-body-md">
                     {bugReports.length === 0 && (
                       <tr>
-                        <td colSpan={3} className="px-6 py-8 text-center text-on-surface-variant">No bug reports found.</td>
+                        <td colSpan={3} className="px-6 py-8 text-center text-on-surface-variant">{t('teacher.no_bugs')}</td>
                       </tr>
                     )}
                     {bugReports.map(bug => (
@@ -1034,6 +1107,12 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
           </div>
         </div>
       )}
+      <ClassAnalyticsModal 
+        isOpen={isAnalyticsModalOpen} 
+        onClose={() => setIsAnalyticsModalOpen(false)} 
+        logs={logs} 
+      />
+
     </div>
   );
 };

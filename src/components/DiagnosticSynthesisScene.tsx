@@ -53,7 +53,7 @@ const DiagnosticSynthesisScene = ({ activeCase, onFinish, addLogAction, diagnost
         const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
         if (apiKey) {
           const genAI = new GoogleGenerativeAI(apiKey);
-          const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+          const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
           const prompt = `
             นักศึกษาส่งคำตอบ Final Diagnosis มาว่า: "${submittedText}"
             คำตอบที่ถูกต้องคือ: ${activeCase?.diseaseName}
@@ -94,7 +94,7 @@ const DiagnosticSynthesisScene = ({ activeCase, onFinish, addLogAction, diagnost
         try {
           const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
           const genAI = new GoogleGenerativeAI(apiKey);
-          const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+          const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
           
           const prompt = `
             คุณคือ "เย็นใจ" ผู้ช่วย AI สาวน้อยน่ารัก สุภาพ อ่อนโยน

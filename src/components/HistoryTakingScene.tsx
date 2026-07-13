@@ -9,6 +9,7 @@ import DDxGateModal from './DDxGateModal';
 import AdaptivePreTestModal from './AdaptivePreTestModal';
 import PatientAvatarSVG from './PatientAvatarSVG';
 import YenjaiChatWidget from './YenjaiChatWidget';
+import { useTranslation } from 'react-i18next';
 
 interface PatientCase {
   id?: string;
@@ -35,6 +36,7 @@ interface PatientCase {
 }
 
 const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLogAction, chatHistory, setChatHistory, timeLeft, setTimeLeft }: { activeCase: any, preTestScore: number, onFinish: (ddx: string, logId: string, reason: string) => void, onBack: () => void, addLogAction: (dim: string, act: string, mis: string, tag: string) => void, chatHistory: any[], setChatHistory: (v: any[]) => void, timeLeft: number, setTimeLeft: (v: number) => void }) => {
+  const { t } = useTranslation();
   const [isRecording, setIsRecording] = useState(false);
   const [showDDxGate, setShowDDxGate] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -214,7 +216,7 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ 
-        model: "gemini-2.5-flash",
+        model: "gemini-3.5-flash",
         safetySettings: [
           { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
           { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -319,7 +321,7 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
         const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
         if (apiKey) {
           const genAI = new GoogleGenerativeAI(apiKey);
-          const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+          const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
           const prompt = `
             นักศึกษาส่งคำตอบ DDx มาว่า: "${submittedText}"
             คำตอบที่ถูกต้องคือ: ${patientCase?.ddxGroup || patientCase?.diseaseName}
@@ -359,7 +361,7 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
         try {
           const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
           const genAI = new GoogleGenerativeAI(apiKey);
-          const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+          const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
           const prompt = `
             คุณคือ "เย็นใจ" ผู้ช่วย AI สาวน้อยน่ารัก สุภาพ อ่อนโยน
             นักศึกษาส่งคำตอบ Differential Diagnosis (DDx) มาว่า: "${ddx.join(', ')}"
@@ -392,7 +394,7 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
       if (apiKey) {
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
         const chatHistory = messages.filter(m => m.sender === 'student').map(m => m.text).join(' | ');
         const prompt = `
           วิเคราะห์คำถามของนักศึกษาแพทย์ต่อไปนี้: "${chatHistory}"
@@ -418,7 +420,7 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
     const hasTimeKeyword = timeKeywords.some(kw => chatText.includes(kw));
 
     if (!hasTimeKeyword) {
-      addLogAction('History Taking', 'Omitted symptom onset time', 'Missed critical temporal profiling criteria', 'Review Slide Section: Timeline & Evolution of Neurological Symptoms');
+      addLogAction('History Taking', 'Omitted symptom onset time', 'Missed critical temporal profiling criteria', 'Review Slide Section: Timeline & Evolution of Symptoms');
     }
 
     try {
@@ -489,8 +491,8 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
           <div className="bg-secondary-container p-2 rounded-full hidden sm:block">
             <span className="material-symbols-rounded text-secondary text-[20px]">stethoscope</span>
           </div>
-          <h1 className="font-headline-md text-headline-md font-bold text-on-surface hidden sm:block">History Taking Phase</h1>
-          <h1 className="font-headline-md text-xl font-bold text-on-surface sm:hidden">History Taking</h1>
+          <h1 className="font-headline-md text-headline-md font-bold text-on-surface hidden sm:block">{t('scenes.history.title')}</h1>
+          <h1 className="font-headline-md text-xl font-bold text-on-surface sm:hidden">{t('scenes.history.title')}</h1>
         </div>
         <div className="flex items-center gap-3">
           <button 
@@ -644,7 +646,7 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
                   onClick={() => setShowDDxGate(true)}
                   className="flex items-center justify-center gap-2 px-4 py-3 bg-secondary-container text-on-secondary-container hover:bg-secondary-fixed transition-colors border border-secondary-fixed-dim rounded-full font-label-md shadow-sm text-[10px] md:text-sm"
                 >
-                  Propose DDx <span className="material-symbols-rounded text-[18px] hidden sm:block">arrow_forward</span>
+                  {t('scenes.history.end_consult')} <span className="material-symbols-rounded text-[18px] hidden sm:block">arrow_forward</span>
                 </button>
               </div>
 

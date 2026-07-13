@@ -18,8 +18,10 @@ import ReportBugWidget from './components/ReportBugWidget';
 import { CLINICAL_CASES } from './data/cases';
 import { signOut } from 'firebase/auth';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { useTranslation } from 'react-i18next';
 
 function App() {
+  const { t, i18n } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<'student' | 'teacher' | null>(null);
   const [loading, setLoading] = useState(true);
@@ -143,7 +145,11 @@ function App() {
                 customCases.push({ id: doc.id, ...data });
               }
             });
-            setAvailableCases([...CLINICAL_CASES, ...customCases]);
+            if (customCases.length > 0) {
+              setAvailableCases(customCases);
+            } else {
+              setAvailableCases(CLINICAL_CASES);
+            }
           } catch (e) {
             console.warn("Could not fetch custom cases", e);
           }
@@ -328,13 +334,25 @@ function App() {
 
       <ReportBugWidget stage={stage} caseName={activeCase?.diseaseName} />
 
+      {stage !== 'gateway' && (
+        <div className="fixed bottom-6 right-6 z-[999999] flex gap-2">
+          <button
+            onClick={() => i18n.changeLanguage(i18n.language === 'th' ? 'en' : 'th')}
+            className="px-4 py-2 bg-surface-container-lowest text-on-surface-variant rounded-full shadow-lg font-label-sm border border-outline-variant hover:bg-surface-container transition-colors flex items-center gap-2"
+          >
+            <span className="material-symbols-rounded text-[18px]">language</span> 
+            {i18n.language === 'th' ? 'EN' : 'TH'}
+          </button>
+        </div>
+      )}
+
       {role === 'teacher' && stage !== 'teacher' && (
         <div className="fixed bottom-4 left-4 z-[999999] flex flex-col gap-2 items-start">
           <button 
             onClick={() => setStage('teacher')}
             className="px-4 py-2 bg-indigo-900 text-white rounded-full shadow-lg font-bold text-sm hover:bg-indigo-800 hover:scale-105 transition-transform border-2 border-indigo-400 flex items-center gap-2"
           >
-            <span className="material-symbols-rounded text-[18px]">admin_panel_settings</span> Switch to Teacher View
+            <span className="material-symbols-rounded text-[18px]">admin_panel_settings</span> {t('app.switch_teacher')}
           </button>
         </div>
       )}
@@ -356,6 +374,7 @@ function App() {
         <>
           <Dashboard onStartCase={() => {}} />
           <AdaptivePreTestModal 
+            caseData={activeCase}
             onClose={handlePreTestComplete} 
             onCancel={() => setStage('dashboard')}
             addLogAction={addLogAction} 
@@ -510,7 +529,7 @@ function App() {
                     const studentMsgs = chatHistory.filter((m: any) => m.sender === 'student');
                     if (studentMsgs.length > 0) {
                         const genAI = new GoogleGenerativeAI(apiKey);
-                        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+                        const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
                         
                         const prompt = `
                           คุณเป็นอาจารย์แพทย์ที่กำลังประเมินนักศึกษาจากการซักถามผู้ช่วย AI (ชื่อน้องเย็นใจ)
