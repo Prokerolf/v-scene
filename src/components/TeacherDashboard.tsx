@@ -1111,6 +1111,7 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
         isOpen={isAnalyticsModalOpen} 
         onClose={() => setIsAnalyticsModalOpen(false)} 
         logs={logs} 
+        cases={cases}
       />
 
     </div>

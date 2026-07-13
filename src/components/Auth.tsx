@@ -51,7 +51,7 @@ const Auth = () => {
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans text-slate-800">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
         <div className="flex justify-center mb-6">
-          <img src={logoImg} alt="V-SCENE Logo" className="h-28 md:h-36 w-auto object-contain" />
+          <img src={logoImg} alt="V-SCENE Logo" className="h-48 md:h-56 w-auto object-contain" />
         </div>
         <p className="mt-2 text-sm text-slate-600">
           {t('auth.subtitle')}

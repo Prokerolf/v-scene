@@ -12,29 +12,113 @@ interface ClassAnalyticsModalProps {
   isOpen: boolean;
   onClose: () => void;
   logs: CaseLog[];
+  cases: any[];
 }
 
-export const ClassAnalyticsModal: React.FC<ClassAnalyticsModalProps> = ({ isOpen, onClose, logs }) => {
+const calculateStudentScores = (log: CaseLog, caseData: any) => {
+  if (!caseData) return { historyScore: 0, labScore: 0, ddxScore: 0, treatmentScore: 0 };
+
+  // 1. Lab Score
+  const goldLabs = caseData.goldStandardLabs || [];
+  const selectedLabs = log.selectedLabs || [];
+  const correctLabs = selectedLabs.filter((l: string) => goldLabs.includes(l));
+  const labScore = goldLabs.length > 0 ? (correctLabs.length / goldLabs.length) * 100 : 100;
+
+  // 2. Treatment Score
+  const goldDrugs = caseData.goldStandardDrugs || [];
+  const contraDrugs = caseData.contraindicatedDrugs || [];
+  const selectedDrugs = log.selectedDrugs || [];
+  const correctDrugs = selectedDrugs.filter((d: string) => goldDrugs.includes(d));
+  const badDrugsCount = selectedDrugs.filter((d: string) => contraDrugs.includes(d)).length;
+  
+  let treatmentScore = goldDrugs.length > 0 ? (correctDrugs.length / goldDrugs.length) * 100 : 100;
+  treatmentScore -= (badDrugsCount * 20); // Penalty
+  treatmentScore = Math.max(0, Math.min(100, treatmentScore));
+
+  // 3. DDx Score
+  let ddxScore = 0;
+  const finalDiag = (log.finalDiagnosis || '').toLowerCase();
+  const ddxKeywords = caseData.ddxKeywords || [];
+  const finalKeywords = caseData.finalDiagnosisKeywords || [];
+  
+  if (finalKeywords.some((k: string) => finalDiag.includes(k.toLowerCase()))) {
+    ddxScore = 100;
+  } else {
+    const submittedDDx = log.submittedDDx || [];
+    const hasPartial = submittedDDx.some((dx: string) => 
+      ddxKeywords.some((k: string) => dx.toLowerCase().includes(k.toLowerCase()))
+    );
+    if (hasPartial) ddxScore = 50;
+  }
+
+  // 4. History Score (Proxy based on chat depth)
+  const chatHistory = log.chatHistory || [];
+  // Assuming a thorough history needs about 12 messages total (6 Q&A pairs)
+  const historyScore = Math.min((chatHistory.length / 12) * 100, 100);
+
+  return {
+    historyScore,
+    labScore,
+    ddxScore,
+    treatmentScore
+  };
+};
+
+export const ClassAnalyticsModal: React.FC<ClassAnalyticsModalProps> = ({ isOpen, onClose, logs, cases }) => {
   const { t } = useTranslation();
+  const [selectedCaseId, setSelectedCaseId] = React.useState<string>('all');
 
   if (!isOpen) return null;
 
+  const filteredLogs = selectedCaseId === 'all' 
+    ? logs 
+    : logs.filter(l => l.activeCaseId === selectedCaseId);
+
   // Calculate Distributions
-  const totalLogs = logs.length || 1; // Prevent division by zero
-  const highTier = logs.filter(l => (l.preTestScore || 0) >= 7).length;
-  const midTier = logs.filter(l => (l.preTestScore || 0) >= 4 && (l.preTestScore || 0) < 7).length;
-  const lowTier = logs.filter(l => (l.preTestScore || 0) < 4).length;
+  const totalLogs = filteredLogs.length || 1; // Prevent division by zero
+  const highTier = filteredLogs.filter(l => (l.preTestScore || 0) >= 7).length;
+  const midTier = filteredLogs.filter(l => (l.preTestScore || 0) >= 4 && (l.preTestScore || 0) < 7).length;
+  const lowTier = filteredLogs.filter(l => (l.preTestScore || 0) < 4).length;
 
   const highPct = Math.round((highTier / totalLogs) * 100);
   const midPct = Math.round((midTier / totalLogs) * 100);
   const lowPct = Math.round((lowTier / totalLogs) * 100);
 
-  // Simulated Skills Data
+  // Calculate Average Real Skills Data
+  let sumHistory = 0;
+  let sumLab = 0;
+  let sumDdx = 0;
+  let sumTreatment = 0;
+  let validLogsCount = 0;
+
+  filteredLogs.forEach(log => {
+    const caseData = cases.find(c => c.id === log.activeCaseId);
+    if (caseData) {
+      const scores = calculateStudentScores(log, caseData);
+      sumHistory += scores.historyScore;
+      sumLab += scores.labScore;
+      sumDdx += scores.ddxScore;
+      sumTreatment += scores.treatmentScore;
+      validLogsCount++;
+    }
+  });
+
+  const avgHistory = validLogsCount > 0 ? Math.round(sumHistory / validLogsCount) : 0;
+  const avgLab = validLogsCount > 0 ? Math.round(sumLab / validLogsCount) : 0;
+  const avgDdx = validLogsCount > 0 ? Math.round(sumDdx / validLogsCount) : 0;
+  const avgTreatment = validLogsCount > 0 ? Math.round(sumTreatment / validLogsCount) : 0;
+
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return 'bg-primary';
+    if (score >= 60) return 'bg-secondary';
+    return 'bg-error';
+  };
+
   const skills = [
-    { name: t('teacher.history_skill'), score: 85, color: 'bg-primary' },
-    { name: t('teacher.ddx_skill'), score: 72, color: 'bg-secondary' },
-    { name: t('teacher.lab_skill'), score: 65, color: 'bg-tertiary' },
-    { name: t('teacher.treatment_skill'), score: 45, color: 'bg-error' }
+    { name: t('teacher.history_skill'), score: avgHistory, color: getScoreColor(avgHistory) },
+    { name: t('teacher.ddx_skill'), score: avgDdx, color: getScoreColor(avgDdx) },
+    { name: t('teacher.lab_skill'), score: avgLab, color: getScoreColor(avgLab) },
+    { name: t('teacher.treatment_skill'), score: avgTreatment, color: getScoreColor(avgTreatment) }
   ];
 
   return (
@@ -48,7 +132,19 @@ export const ClassAnalyticsModal: React.FC<ClassAnalyticsModalProps> = ({ isOpen
               <TrendingUp className="w-6 h-6 text-primary" />
               {t('teacher.analytics_title')}
             </h2>
-            <p className="font-body-sm text-on-surface-variant mt-1">{t('teacher.analytics_subtitle')}</p>
+            <div className="flex items-center gap-4 mt-2">
+              <p className="font-body-sm text-on-surface-variant">{t('teacher.analytics_subtitle')}</p>
+              <select 
+                value={selectedCaseId} 
+                onChange={(e) => setSelectedCaseId(e.target.value)}
+                className="bg-surface border border-outline-variant rounded-md px-2 py-1 text-sm text-on-surface outline-none focus:border-primary"
+              >
+                <option value="all">All Cases</option>
+                {cases?.map(c => (
+                  <option key={c.id} value={c.id}>{c.diseaseName}</option>
+                ))}
+              </select>
+            </div>
           </div>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-surface-variant transition-colors text-on-surface-variant">
             <X className="w-6 h-6" />
@@ -118,7 +214,6 @@ export const ClassAnalyticsModal: React.FC<ClassAnalyticsModalProps> = ({ isOpen
           <div className="bg-surface-container-low border border-outline-variant rounded-2xl p-5 shadow-sm">
             <div className="flex items-center gap-2 mb-6">
               <h3 className="font-headline-sm text-lg text-on-surface">{t('teacher.skills_breakdown')}</h3>
-              <span className="bg-surface-variant text-on-surface-variant text-xs px-2 py-0.5 rounded-full">Coming Soon</span>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
