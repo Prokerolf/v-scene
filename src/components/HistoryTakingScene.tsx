@@ -44,6 +44,7 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
   const [ddxAttempts, setDdxAttempts] = useState(0);
   const [ddxErrorHint, setDdxErrorHint] = useState<string | null>(null);
   const [ddxFeedbackPopup, setDdxFeedbackPopup] = useState<{status: 'success' | 'fail', message: string, ddx: string[], logId: string, reason: string} | null>(null);
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
   
   const [patientCase, setPatientCase] = useState<PatientCase | null>(activeCase);
   const [loadingCase, setLoadingCase] = useState(false);
@@ -88,8 +89,18 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
   };
 
   const recognitionRef = useRef<any>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const handleVoiceInput = () => {
+    // Unlock iOS Audio and SpeechSynthesis on first user interaction
+    if (audioRef.current) {
+      audioRef.current.play().catch(() => {});
+      audioRef.current.pause();
+    }
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
+    }
+
     if (isRecording && recognitionRef.current) {
       recognitionRef.current.stop();
       return;
@@ -97,7 +108,7 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
 
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert("เบราว์เซอร์ของคุณไม่รองรับการสั่งงานด้วยเสียง (แนะนำให้ใช้ Google Chrome หรือ Safari เวอร์ชันล่าสุด)");
+      setAlertMessage("เบราว์เซอร์ของคุณไม่รองรับการสั่งงานด้วยเสียง (แนะนำให้ใช้ Google Chrome หรือ Safari เวอร์ชันล่าสุด)");
       return;
     }
     const recognition = new SpeechRecognition();
@@ -118,7 +129,10 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
     recognition.onerror = (event: any) => {
       console.error("Speech recognition error", event.error);
       setIsRecording(false);
-      alert("เกิดข้อผิดพลาดในการรับเสียง กรุณาลองใหม่อีกครั้ง");
+      // Skip showing alert for 'no-speech' or 'aborted' as they are common and not fatal
+      if (event.error !== 'no-speech' && event.error !== 'aborted') {
+        setAlertMessage("เกิดข้อผิดพลาดในการรับเสียง (" + event.error + ") กรุณาลองใหม่อีกครั้ง");
+      }
     };
     recognition.onend = () => {
       setIsRecording(false);
@@ -156,16 +170,18 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
       if (response.ok) {
         const audioBlob = await response.blob();
         const audioUrl = URL.createObjectURL(audioBlob);
-        const audio = new Audio(audioUrl);
-        setCurrentAudio(audio);
-        try {
-          await audio.play();
-          audio.onended = () => setCurrentAudio(null);
-          audio.onerror = () => setCurrentAudio(null);
-        } catch (playError) {
-          console.warn("Safari blocked auto-play, falling back to browser TTS", playError);
-          setCurrentAudio(null);
-          speakTextFallback(text);
+        if (audioRef.current) {
+          audioRef.current.src = audioUrl;
+          setCurrentAudio(audioRef.current);
+          try {
+            await audioRef.current.play();
+            audioRef.current.onended = () => setCurrentAudio(null);
+            audioRef.current.onerror = () => setCurrentAudio(null);
+          } catch (playError) {
+            console.warn("Safari blocked auto-play, falling back to browser TTS", playError);
+            setCurrentAudio(null);
+            speakTextFallback(text);
+          }
         }
       } else {
         console.warn("Cloud TTS failed, using browser fallback", await response.text());
@@ -207,11 +223,12 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
   const generateAIResponse = async (studentText: string, currentMessages: any[]) => {
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
-    if (!apiKey || apiKey === '') {
-      alert("คำเตือน: ยังไม่ได้ตั้งค่า VITE_GEMINI_API_KEY ระบบจะใช้คำตอบแบบสุ่ม (Rule-based) แทน");
-      fallbackRuleBasedResponse(studentText);
-      return;
-    }
+      if (!apiKey) {
+        console.warn("VITE_GEMINI_API_KEY is missing");
+        setAlertMessage("คำเตือน: ยังไม่ได้ตั้งค่า VITE_GEMINI_API_KEY ระบบจะใช้คำตอบแบบสุ่ม (Rule-based) แทน");
+        fallbackRuleBasedResponse(studentText);
+        return;
+      }
 
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
@@ -283,7 +300,7 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
 
     } catch (error: any) {
       console.error("Gemini API Error:", error);
-      alert(`ระบบ AI ทำงานหนักเกินไปหรือเกิดข้อผิดพลาด\n\n(ไม่ต้องกังวล ระบบจะสลับไปใช้ Rule-based ชั่วคราว)`);
+      setAlertMessage(`ระบบ AI ทำงานหนักเกินไปหรือเกิดข้อผิดพลาด\n\n(ไม่ต้องกังวล ระบบจะสลับไปใช้ Rule-based ชั่วคราว)`);
       fallbackRuleBasedResponse(studentText);
     }
   };
@@ -697,6 +714,24 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
           </div>
         </div>
       )}
+
+      {alertMessage && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-scrim/60 backdrop-blur-sm">
+          <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center animate-in zoom-in-95 duration-200">
+            <span className="material-symbols-rounded text-error text-[48px] mb-4 block mx-auto">error</span>
+            <p className="font-body-md text-on-surface mb-6 whitespace-pre-line">{alertMessage}</p>
+            <button
+              onClick={() => setAlertMessage(null)}
+              className="w-full py-3 bg-surface-variant hover:bg-surface-container-highest text-on-surface-variant rounded-full font-label-md transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Hidden audio element for unlocking iOS Web Audio API */}
+      <audio ref={audioRef} playsInline className="hidden" />
     </div>
   );
 };

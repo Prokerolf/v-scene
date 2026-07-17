@@ -334,7 +334,7 @@ function App() {
 
       <ReportBugWidget stage={stage} caseName={activeCase?.diseaseName} />
 
-      {stage !== 'gateway' && (
+      {(stage === 'gateway' || stage === 'dashboard') && (
         <div className="fixed bottom-6 right-6 z-[999999] flex gap-2">
           <button
             onClick={() => i18n.changeLanguage(i18n.language === 'th' ? 'en' : 'th')}

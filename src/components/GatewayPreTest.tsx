@@ -45,54 +45,47 @@ const GatewayPreTest = ({ onPass, onLogout, answers, setAnswers, currentIndex, s
   if (currentIndex >= 20 || isFinished) {
     const score = calculateScore();
     const passed = score >= 14;
+    
+    const mistakes = answers.map((ans, idx) => ({
+      question: GATEWAY_QUESTIONS[idx],
+      isWrong: ans !== GATEWAY_QUESTIONS[idx].correctAnswerIndex,
+      studentAnswer: ans
+    })).filter(m => m.isWrong);
 
-    if (passed) {
-      return (
-        <div className="bg-background text-on-background min-h-screen flex items-center justify-center p-6 font-body-md">
-          <div className="bg-surface-container-lowest border border-outline-variant max-w-lg w-full rounded-3xl shadow-lg p-10 text-center animate-in zoom-in-95 duration-500">
-            <span className="material-symbols-rounded text-primary text-[80px] mb-6 block mx-auto">check_circle</span>
-            <h2 className="font-headline-lg text-headline-lg text-on-surface mb-4">Access Granted!</h2>
-            <p className="font-body-lg text-on-surface-variant mb-8">
-              Congratulations. You scored {score}/20, demonstrating sufficient baseline knowledge to enter the simulation.
+    // Extract unique slides
+    const slidesToReview = Array.from(new Set(mistakes.map(m => m.question.relatedSlide)));
+
+    return (
+      <div className="bg-background text-on-background min-h-screen flex items-center justify-center p-4 md:p-6 font-body-md">
+        <div className="bg-surface-container-lowest border border-outline-variant max-w-3xl w-full rounded-3xl shadow-lg overflow-hidden animate-in zoom-in-95 duration-500 flex flex-col max-h-[90vh]">
+          
+          {/* Header */}
+          <div className={`${passed ? 'bg-primary-container border-primary-container/50' : 'bg-error-container border-error-container/50'} p-6 md:p-8 border-b text-center shrink-0`}>
+            <span className={`material-symbols-rounded ${passed ? 'text-primary' : 'text-error'} text-[60px] md:text-[80px] mb-2 block mx-auto`}>
+              {passed ? 'check_circle' : 'gpp_maybe'}
+            </span>
+            <h2 className={`font-headline-lg text-2xl md:text-3xl ${passed ? 'text-on-primary-container' : 'text-on-error-container'} mb-2`}>
+              {passed ? 'Access Granted!' : 'Access Denied'}
+            </h2>
+            <p className={`font-body-lg ${passed ? 'text-on-primary-container' : 'text-on-error-container'} opacity-90`}>
+              Score: {score}/20 (Required: 14)
             </p>
-            <button 
-              onClick={onPass}
-              className="w-full bg-primary text-on-primary font-label-md px-8 py-4 rounded-full shadow-md hover:bg-primary-fixed-variant transition-colors flex items-center justify-center gap-2"
-            >
-              Enter Main Dashboard <span className="material-symbols-rounded text-[20px]">arrow_forward</span>
-            </button>
           </div>
-        </div>
-      );
-    } else {
-      // Failed - Show Remediation
-      const mistakes = answers.map((ans, idx) => ({
-        question: GATEWAY_QUESTIONS[idx],
-        isWrong: ans !== GATEWAY_QUESTIONS[idx].correctAnswerIndex
-      })).filter(m => m.isWrong);
 
-      // Extract unique slides
-      const slidesToReview = Array.from(new Set(mistakes.map(m => m.question.relatedSlide)));
+          {/* Content */}
+          <div className="p-6 md:p-8 overflow-y-auto flex-1">
+            <p className="font-body-lg text-on-surface-variant mb-6 text-center">
+              {passed 
+                ? "Congratulations. You have demonstrated sufficient baseline knowledge. However, please review the topics you missed below."
+                : "Your baseline knowledge is currently below the required threshold. Please review the following topics and mistakes before re-testing."}
+            </p>
 
-      return (
-        <div className="bg-background text-on-background min-h-screen flex items-center justify-center p-6 font-body-md">
-          <div className="bg-surface-container-lowest border border-outline-variant max-w-2xl w-full rounded-3xl shadow-lg overflow-hidden animate-in zoom-in-95 duration-500">
-            <div className="bg-error-container p-8 border-b border-error-container/50 text-center">
-              <span className="material-symbols-rounded text-error text-[80px] mb-4 block mx-auto">gpp_maybe</span>
-              <h2 className="font-headline-lg text-headline-lg text-on-error-container mb-2">Access Denied</h2>
-              <p className="font-body-lg text-on-error-container opacity-90">
-                Score: {score}/20 (Required: 14)
-              </p>
-            </div>
-            <div className="p-8">
-              <p className="font-body-lg text-on-surface-variant mb-6">
-                Your baseline knowledge is currently below the required threshold to benefit from the clinical simulations. Please review the following lecture slides before re-testing.
-              </p>
-              <div className="bg-surface-container-low rounded-2xl border border-outline-variant p-6 mb-8">
+            {mistakes.length > 0 && (
+              <div className="bg-surface-container-low rounded-2xl border border-outline-variant p-5 md:p-6 mb-6">
                 <h3 className="font-label-md text-on-surface mb-4 flex items-center gap-2 text-lg">
-                  <span className="material-symbols-rounded text-primary text-[24px]">menu_book</span> Required Review Materials:
+                  <span className="material-symbols-rounded text-primary text-[24px]">menu_book</span> Topics to Review:
                 </h3>
-                <ul className="space-y-3">
+                <ul className="space-y-3 mb-8">
                   {(showAllTopics ? slidesToReview : slidesToReview.slice(0, 5)).map((slide, idx) => (
                     <li key={idx} className="flex items-center gap-3 font-body-md text-on-surface-variant">
                       <span className="material-symbols-rounded text-error text-[20px]">cancel</span> {slide}
@@ -107,8 +100,38 @@ const GatewayPreTest = ({ onPass, onLogout, answers, setAnswers, currentIndex, s
                     </li>
                   )}
                 </ul>
+
+                <h3 className="font-label-md text-on-surface mb-4 flex items-center gap-2 text-lg border-t border-outline-variant pt-6">
+                  <span className="material-symbols-rounded text-error text-[24px]">error</span> Questions Missed:
+                </h3>
+                <div className="space-y-4">
+                  {mistakes.map((m, idx) => (
+                    <div key={idx} className="bg-surface border border-outline-variant rounded-xl p-4">
+                      <p className="font-label-md text-on-surface mb-2">{m.question.question}</p>
+                      <p className="font-body-sm text-error bg-error-container/30 px-3 py-2 rounded-md mb-2">
+                        <strong>Your Answer:</strong> {m.studentAnswer !== -1 ? m.question.options[m.studentAnswer] : "No Answer"}
+                      </p>
+                      <p className="font-body-sm text-primary bg-primary-container/30 px-3 py-2 rounded-md">
+                        <strong>Correct Topic to Review:</strong> {m.question.relatedSlide}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="flex gap-4">
+            )}
+          </div>
+
+          {/* Footer Actions */}
+          <div className="p-6 border-t border-outline-variant bg-surface shrink-0">
+            {passed ? (
+              <button 
+                onClick={onPass}
+                className="w-full bg-primary text-on-primary font-label-md px-8 py-4 rounded-full shadow-md hover:bg-primary-fixed-variant transition-colors flex items-center justify-center gap-2"
+              >
+                Enter Main Dashboard <span className="material-symbols-rounded text-[20px]">arrow_forward</span>
+              </button>
+            ) : (
+              <div className="flex flex-col sm:flex-row gap-4">
                 <button 
                   onClick={onLogout}
                   className="flex-1 bg-surface-variant hover:bg-surface-container-highest text-on-surface-variant font-label-md py-4 rounded-full transition-colors flex justify-center items-center gap-2"
@@ -127,11 +150,12 @@ const GatewayPreTest = ({ onPass, onLogout, answers, setAnswers, currentIndex, s
                   Retake Test Now
                 </button>
               </div>
-            </div>
+            )}
           </div>
+
         </div>
-      );
-    }
+      </div>
+    );
   }
 
   const q = GATEWAY_QUESTIONS[currentIndex];
