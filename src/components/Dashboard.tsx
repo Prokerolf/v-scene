@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { auth, db } from '../lib/firebase';
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { signOut } from 'firebase/auth';
+import { doc, getDoc, collection, query, where, getDocs, setDoc } from 'firebase/firestore';
+import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { CLINICAL_CASES } from '../data/cases';
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
@@ -15,7 +15,7 @@ const Dashboard = ({ onStartCase }: { onStartCase: (caseData: any) => void }) =>
   const [allLogs, setAllLogs] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [availableCases, setAvailableCases] = useState<any[]>(CLINICAL_CASES);
+  const [availableCases, setAvailableCases] = useState<any[]>(CLINICAL_CASES.filter(c => !c.id.startsWith('gen_')));
 
   const notifications = allLogs
     .filter(log => log.teacherFeedback)
@@ -27,41 +27,84 @@ const Dashboard = ({ onStartCase }: { onStartCase: (caseData: any) => void }) =>
     }));
 
   useEffect(() => {
-    const fetchProfileAndLogs = async () => {
-      if (auth.currentUser) {
-        const docRef = doc(db, 'users', auth.currentUser.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setProfile(docSnap.data() as any);
-        }
-
-        try {
-          const q = query(
-            collection(db, 'case_logs'), 
-            where('userId', '==', auth.currentUser.uid)
-          );
-          const querySnapshot = await getDocs(q);
-          const logsData: any[] = [];
-          querySnapshot.forEach((doc) => {
-            logsData.push(doc.data());
-          });
-          
-          logsData.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-          
-          setAllLogs(logsData);
-          if (logsData.length > 0) {
-            setLatestLog(logsData[0]);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        const fetchProfileAndLogs = async () => {
+          const docRef = doc(db, 'users', user.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            setProfile(docSnap.data() as any);
           }
-          
-          // Custom cases fetching removed to keep only the 3 prototype cases
-          setAvailableCases([...CLINICAL_CASES]);
 
-        } catch (e) {
-          console.error("Error fetching logs", e);
-        }
+          try {
+            const q = query(
+              collection(db, 'case_logs'), 
+              where('userId', '==', user.uid)
+            );
+            const querySnapshot = await getDocs(q);
+            const logsData: any[] = [];
+            querySnapshot.forEach((doc) => {
+              logsData.push(doc.data());
+            });
+            
+            logsData.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+            
+            setAllLogs(logsData);
+            if (logsData.length > 0) {
+              setLatestLog(logsData[0]);
+            }
+            
+            if (!localStorage.getItem('force_sync_cases_english_v5')) {
+              for (const c of CLINICAL_CASES) {
+                const newCase = { ...c, status: 'deployed', timestamp: new Date().toISOString() };
+                await setDoc(doc(db, 'cases', c.id), newCase);
+              }
+              localStorage.setItem('force_sync_cases_english_v5', 'true');
+            }
+
+            const casesSnapshot = await getDocs(collection(db, 'cases'));
+            const casesData: any[] = [];
+            const validIds = CLINICAL_CASES.map(c => c.id);
+            casesSnapshot.forEach((cDoc) => {
+              const data = cDoc.data();
+              // Hide adaptive cases (which have IDs starting with 'gen_') from the dashboard UI.
+              if (data.status === 'deployed' && validIds.includes(cDoc.id) && !cDoc.id.startsWith('gen_')) {
+                const localMatch = CLINICAL_CASES.find(c => c.id === cDoc.id);
+                if (localMatch) {
+                  casesData.push({ ...localMatch, status: 'deployed' });
+                } else {
+                  casesData.push({ id: cDoc.id, ...data });
+                }
+              }
+            });
+            
+            if (casesData.length > 0) {
+              const order = ['case_covid_pneumonia', 'case_diaphragmatic_paralysis', 'case_paragonimus'];
+              casesData.sort((a, b) => {
+                const indexA = order.indexOf(a.id);
+                const indexB = order.indexOf(b.id);
+                
+                if (indexA !== -1 && indexB !== -1) {
+                  return indexA - indexB;
+                }
+                if (indexA !== -1) return -1;
+                if (indexB !== -1) return 1;
+                
+                return a.id.localeCompare(b.id);
+              });
+            }
+            // Always set, even if empty (do not fallback to default cases if teacher undeployed all)
+            setAvailableCases(casesData);
+
+          } catch (e) {
+            console.error("Error fetching logs", e);
+          }
+        };
+        fetchProfileAndLogs();
       }
-    };
-    fetchProfileAndLogs();
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const handleLogout = () => {

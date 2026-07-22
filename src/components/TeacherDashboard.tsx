@@ -107,6 +107,7 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
   const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
   const [diseaseInput, setDiseaseInput] = useState('');
   const [backgroundInput, setBackgroundInput] = useState('');
+  const [isGeneratingCase, setIsGeneratingCase] = useState(false);
   const [activeTab, setActiveTab] = useState<'monitoring' | 'approval' | 'bug_reports'>('monitoring');
   const [bugReports, setBugReports] = useState<BugReport[]>([]);
   const [studentFilter, setStudentFilter] = useState<'all' | 'needs_help'>('all');
@@ -181,7 +182,15 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
         });
       }
       
-      casesData.sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime());
+      const order = ['case_covid_pneumonia', 'case_diaphragmatic_paralysis', 'case_paragonimus'];
+      casesData.sort((a, b) => {
+        const indexA = order.indexOf(a.id);
+        const indexB = order.indexOf(b.id);
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+        return a.id.localeCompare(b.id);
+      });
       setCases(casesData);
 
       const configDoc = await getDoc(doc(db, 'settings', 'system_config'));
@@ -232,12 +241,12 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
 
-      const transcript = log.chatHistory.map(m => `${m.role === 'user' ? 'Student' : 'Patient'}: ${m.text}`).join('\n');
+      const transcript = log.chatHistory?.map(m => `${m?.role === 'user' ? 'Student' : 'Patient'}: ${m?.text}`).join('\n') || '';
       const ddx = log.submittedDDx && Array.isArray(log.submittedDDx) ? log.submittedDDx.join(', ') : (log.submittedDDx || 'ไม่ได้ระบุ');
-      const labs = log.selectedLabs?.map(id => labOptions.find(l => l.id === id)?.name || id).join(', ') || 'ไม่ได้ระบุ';
-      const drugs = log.selectedDrugs?.map(id => drugOptions.find(d => d.id === id)?.name || id).join(', ') || 'ไม่ได้ระบุ';
+      const labs = log.selectedLabs?.map(id => labOptions?.find(l => l?.id === id)?.name || id).join(', ') || 'ไม่ได้ระบุ';
+      const drugs = log.selectedDrugs?.map(id => drugOptions?.find(d => d?.id === id)?.name || id).join(', ') || 'ไม่ได้ระบุ';
 
-      const caseQuestions = cases.find(c => c.id === log.activeCaseId)?.preTestQuestions || CLINICAL_CASES.find(c => c.id === log.activeCaseId)?.preTestQuestions || [];
+      const caseQuestions = cases?.find(c => c?.id === log.activeCaseId)?.preTestQuestions || CLINICAL_CASES?.find(c => c?.id === log.activeCaseId)?.preTestQuestions || [];
       
       let preTestSummary = `คะแนน: ${log.preTestScore || 0}/${caseQuestions.length || 9}`;
       if (log.preTestAnswers && Array.isArray(log.preTestAnswers) && caseQuestions.length > 0) {
@@ -290,7 +299,7 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
     setIsAnalyzing(false);
   };
 
-  const generateNewCase = async () => {
+    const generateNewCase = async () => {
     if (!diseaseInput) return alert("กรุณาใส่ชื่อโรค");
     setIsGeneratingCase(true);
     try {
@@ -303,39 +312,55 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
         จงสร้างข้อมูลผู้ป่วยจากชื่อโรค: "${diseaseInput}"
         บริบทเพิ่มเติม (ถ้ามี): "${backgroundInput}"
         
-        ให้ตอบกลับมาเป็น JSON FORMAT เท่านั้น โดยมีรูปแบบดังนี้:
-        {
-          "tier": "Low หรือ Mid หรือ High",
-          "diseaseName": "${diseaseInput}",
-          "patientName": "ชื่อ นามสกุล (ภาษาไทย)",
-          "age": ตัวเลขอายุ,
-          "gender": "ชาย หรือ หญิง",
-          "chiefComplaint": "อาการสำคัญที่เป็นภาษาชาวบ้าน ไม่ใช้ศัพท์แพทย์",
-          "personaDetails": "ประวัติอย่างละเอียด อุปนิสัย ภาษาที่ใช้ ประวัติครอบครัว ประวัติส่วนตัว (เพื่อนำไปให้ AI สวมบทบาทต่อ)",
-          "voiceProfile": "เลือกระหว่าง: old_male, male, old_female, female, child",
-          "ddxGroup": "กลุ่มโรคที่เป็นไปได้ (ภาษาไทย)",
-          "ddxExplanation": "คำอธิบายเหตุผลในการซักประวัติแยกโรค",
-          "diagnosisExplanation": "คำอธิบายเหตุผลของการวินิจฉัยโรคนี้",
-          "goldStandardLabs": ["1", "3"], // ID ของ Lab ที่จำเป็นที่สุดจริงๆ (ห้ามใส่เกิน 1-3 ตัวเด็ดขาด! เอาเฉพาะ Gold Standard ที่ใช้ยืนยันโรค ห้ามใส่ Lab พื้นฐานทั่วไปเช่น CBC ถ้าไม่จำเป็น) (1=CT Brain, 2=MRI Brain, 3=CBC, 4=Coag, 5=BUN/Cr, 6=Electrolytes, 7=FBS, 8=Lipid, 9=EKG, 10=Echo, 11=CXR, 12=LFT, 13=TFT, 14=UA)
-          "specificLabResults": {
-            "1": { "text": "**CT Brain:** Normal findings." } // ตัวอย่างการใส่ผลแล็บจำเพาะสำหรับ goldStandardLabs
+        สำคัญมาก: คุณต้องสร้างเคสย่อยทั้งหมด 3 เคส (3 ระดับความยาก: Low, Mid, High) สำหรับโรคนี้ โดยประยุกต์อาการและโรคแทรกซ้อนให้เหมาะสมกับแต่ละระดับความยาก
+        ให้ตอบกลับมาเป็น JSON Array ที่ประกอบด้วย 3 Object เท่านั้น โดยมีรูปแบบดังนี้:
+        [
+          {
+            "tier": "Low หรือ Mid หรือ High",
+            "tierExplanation": "อธิบายสั้นๆ ว่าทำไมเคสนี้ถึงมีความยากระดับนี้ (เช่น เคส Low จะตรงไปตรงมา, เคส High จะมีโรคแทรกซ้อนหรือต้องแปลผลซับซ้อน)",
+            "diseaseName": "${diseaseInput}",
+            "patientName": "ชื่อ นามสกุล (ภาษาไทย)",
+            "age": ตัวเลขอายุ,
+            "gender": "ชาย หรือ หญิง",
+            "chiefComplaint": "อาการสำคัญที่เป็นภาษาชาวบ้าน ไม่ใช้ศัพท์แพทย์",
+            "personaDetails": "ประวัติอย่างละเอียด อุปนิสัย ภาษาที่ใช้ ประวัติครอบครัว ประวัติส่วนตัว (เพื่อนำไปให้ AI สวมบทบาทต่อ)",
+            "voiceProfile": "เลือกระหว่าง: old_male, male, old_female, female, child",
+            "ddxGroup": "กลุ่มโรคที่เป็นไปได้ (ภาษาไทย)",
+            "ddxExplanation": "คำอธิบายเหตุผลในการซักประวัติแยกโรค",
+            "diagnosisExplanation": "คำอธิบายเหตุผลของการวินิจฉัยโรคนี้",
+            "goldStandardLabs": ["1", "3"], // ID ของ Lab ที่จำเป็นที่สุดจริงๆ (ห้ามใส่เกิน 1-3 ตัวเด็ดขาด! เอาเฉพาะ Gold Standard ที่ใช้ยืนยันโรค)
+            "specificLabResults": {
+              "1": { "text": "**CT Brain:** Normal findings." },
+              "3": { "text": "**Complete Blood Count (CBC):**\\n- Hb: 10 g/dL (Normal: 12-15 g/dL)\\n- WBC: 12,000 /uL (Normal: 4,500-11,000 /uL)" } 
+            }
           }
-        }
+        ]
         
-        ไม่ต้องมี markdown \`\`\`json ครอบ ให้ส่งเฉพาะ JSON text ล้วนๆ
+        กติกาสำหรับผลแล็บ (specificLabResults): 
+        - ต้องใส่ **ค่าอ้างอิงปกติ (Normal Range)** ไว้ในวงเล็บต่อท้ายค่าผลแล็บที่เป็นตัวเลขเสมอ เช่น Hb: 10 g/dL (Normal: 12-15 g/dL)
+        
+        ไม่ต้องมี markdown \`\`\`json ครอบ ให้ส่งเฉพาะ JSON Array ล้วนๆ
       `;
 
       const result = await model.generateContent(prompt);
       const jsonText = result.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
-      const caseData = JSON.parse(jsonText);
+      const casesArray = JSON.parse(jsonText);
       
-      caseData.timestamp = new Date().toISOString();
-      caseData.status = 'draft';
+      if (!Array.isArray(casesArray)) {
+        throw new Error("AI did not return an array.");
+      }
+
+      const batch = writeBatch(db);
+      for (const caseData of casesArray) {
+        caseData.timestamp = new Date().toISOString();
+        caseData.status = 'draft';
+        const docRef = doc(collection(db, 'cases'));
+        batch.set(docRef, caseData);
+      }
       
-      const docRef = await addDoc(collection(db, 'cases'), caseData);
-      await setDoc(doc(db, 'settings', 'system_config'), { activeCaseId: docRef.id }, { merge: true });
+      await batch.commit();
       
-      alert("สร้างเคสสำเร็จ!");
+      alert("สร้างเคสสำเร็จทั้ง 3 ระดับ!");
       setIsCaseGenModalOpen(false);
       setDiseaseInput('');
       setBackgroundInput('');

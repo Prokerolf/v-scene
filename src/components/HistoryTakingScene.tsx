@@ -7,7 +7,7 @@ import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
 import DDxGateModal from './DDxGateModal';
 import AdaptivePreTestModal from './AdaptivePreTestModal';
-import PatientAvatarSVG from './PatientAvatarSVG';
+import PatientAvatarRealistic, { sharedAudioCtx } from './PatientAvatarRealistic';
 import YenjaiChatWidget from './YenjaiChatWidget';
 import { useTranslation } from 'react-i18next';
 
@@ -38,6 +38,7 @@ interface PatientCase {
 const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLogAction, chatHistory, setChatHistory, timeLeft, setTimeLeft }: { activeCase: any, preTestScore: number, onFinish: (ddx: string, logId: string, reason: string) => void, onBack: () => void, addLogAction: (dim: string, act: string, mis: string, tag: string) => void, chatHistory: any[], setChatHistory: (v: any[]) => void, timeLeft: number, setTimeLeft: (v: number) => void }) => {
   const { t } = useTranslation();
   const [isRecording, setIsRecording] = useState(false);
+  const [isMicStarting, setIsMicStarting] = useState(false);
   const [showDDxGate, setShowDDxGate] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [messagesCount, setMessagesCount] = useState(0); 
@@ -79,8 +80,23 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
     const timer = setInterval(() => {
       setTimeLeft(prev => (prev > 0 ? prev - 1 : 0));
     }, 1000);
+    
+    // Initialize speech synthesis voices early
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.getVoices();
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.getVoices();
+      };
+    }
+    
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (timeLeft === 0 && !showDDxGate) {
+      setShowDDxGate(true);
+    }
+  }, [timeLeft, showDDxGate]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -93,9 +109,9 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
 
   const handleVoiceInput = () => {
     // Unlock iOS Audio and SpeechSynthesis on first user interaction
-    if (audioRef.current) {
+    if (audioRef.current && !audioRef.current.src.startsWith('blob:')) {
+      audioRef.current.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
       audioRef.current.play().catch(() => {});
-      audioRef.current.pause();
     }
     if ('speechSynthesis' in window) {
       window.speechSynthesis.speak(new SpeechSynthesisUtterance(''));
@@ -111,16 +127,46 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
       setAlertMessage("เบราว์เซอร์ของคุณไม่รองรับการสั่งงานด้วยเสียง (แนะนำให้ใช้ Google Chrome หรือ Safari เวอร์ชันล่าสุด)");
       return;
     }
+    
+    // Resume shared audio context on user gesture to fix Safari/Mac audio dropouts
+    if (sharedAudioCtx && sharedAudioCtx.state === 'suspended') {
+      sharedAudioCtx.resume();
+    }
+    
+    setIsMicStarting(true);
+    
     const recognition = new SpeechRecognition();
+    const isEnglishCase = patientCase?.patientName === 'Mrs. Sarah Connor';
+    recognition.lang = isEnglishCase ? 'en-US' : 'th-TH'; 
     recognitionRef.current = recognition;
-    recognition.lang = 'th-TH'; 
     recognition.continuous = true;
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
     let accumulatedTranscript = '';
 
-    recognition.onstart = () => setIsRecording(true);
+    recognition.onstart = () => {
+      setIsMicStarting(false);
+      setIsRecording(true);
+      // Play a tiny beep so the user knows they can start speaking
+      try {
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioContextClass) {
+          const ctx = new AudioContextClass();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(800, ctx.currentTime);
+          gain.gain.setValueAtTime(0.1, ctx.currentTime);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.15);
+        }
+      } catch (e) {
+        // ignore
+      }
+    };
     recognition.onresult = (event: any) => {
       for (let i = event.resultIndex; i < event.results.length; i++) {
         accumulatedTranscript += event.results[i][0].transcript + ' ';
@@ -129,6 +175,7 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
     recognition.onerror = (event: any) => {
       console.error("Speech recognition error", event.error);
       setIsRecording(false);
+      setIsMicStarting(false);
       // Skip showing alert for 'no-speech' or 'aborted' as they are common and not fatal
       if (event.error !== 'no-speech' && event.error !== 'aborted') {
         setAlertMessage("เกิดข้อผิดพลาดในการรับเสียง (" + event.error + ") กรุณาลองใหม่อีกครั้ง");
@@ -136,6 +183,7 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
     };
     recognition.onend = () => {
       setIsRecording(false);
+      setIsMicStarting(false);
       if (accumulatedTranscript.trim()) {
         const transcript = accumulatedTranscript.trim();
         const newMessages = [...messages, { sender: 'student', text: transcript }];
@@ -172,11 +220,18 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
         const audioUrl = URL.createObjectURL(audioBlob);
         if (audioRef.current) {
           audioRef.current.src = audioUrl;
+          audioRef.current.load(); // Ensure browser loads it before playing
           setCurrentAudio(audioRef.current);
           try {
             await audioRef.current.play();
-            audioRef.current.onended = () => setCurrentAudio(null);
-            audioRef.current.onerror = () => setCurrentAudio(null);
+            audioRef.current.onended = () => {
+              setCurrentAudio(null);
+              URL.revokeObjectURL(audioUrl);
+            };
+            audioRef.current.onerror = () => {
+              setCurrentAudio(null);
+              URL.revokeObjectURL(audioUrl);
+            };
           } catch (playError) {
             console.warn("Safari blocked auto-play, falling back to browser TTS", playError);
             setCurrentAudio(null);
@@ -203,8 +258,10 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
       sanitizedText = sanitizedText.replace(/รพ\./g, 'โรงพยาบาล');
       sanitizedText = sanitizedText.replace(/ซม\./g, 'เซนติเมตร');
 
+      const isEnglishCase = patientCase?.patientName === 'Mrs. Sarah Connor';
+      
       const utterance = new SpeechSynthesisUtterance(sanitizedText);
-      utterance.lang = 'th-TH';
+      utterance.lang = isEnglishCase ? 'en-US' : 'th-TH';
       utterance.rate = 1.0; 
       utterance.pitch = patientCase?.gender === 'ชาย' ? 0.6 : 1.2; 
       
@@ -212,11 +269,57 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
       utterance.onend = () => setIsSpeakingFallback(false);
       utterance.onerror = () => setIsSpeakingFallback(false);
       
-      const voices = window.speechSynthesis.getVoices();
-      const thaiVoices = voices.filter(v => v.lang.includes('th') || v.lang.includes('TH'));
+      let attempts = 0;
       
-      if (thaiVoices.length > 0) utterance.voice = thaiVoices[0];
-      window.speechSynthesis.speak(utterance);
+      const setVoiceAndSpeak = () => {
+        let currentVoices = window.speechSynthesis.getVoices();
+        
+        if (currentVoices.length === 0 && attempts < 10) {
+          attempts++;
+          setTimeout(setVoiceAndSpeak, 200);
+          return;
+        }
+
+        const isEnglishCase = patientCase?.diseaseName?.toLowerCase().includes('covid') || patientCase?.patientName?.includes('Sarah');
+        utterance.lang = isEnglishCase ? 'en-US' : 'th-TH';
+
+        if (currentVoices.length > 0) {
+          let selectedVoice = null;
+          
+          if (isEnglishCase) {
+            // Priority: Premium female voices
+            selectedVoice = currentVoices.find(v => 
+              (v.lang.includes('en') && (v.name.includes('Samantha') || v.name.includes('Victoria') || v.name.includes('Karen') || v.name.includes('Tessa'))) ||
+              v.name.includes('Google US English') ||
+              v.name.includes('Google UK English Female')
+            );
+            
+            // Fallback: Any female English voice
+            if (!selectedVoice) {
+              selectedVoice = currentVoices.find(v => v.lang.includes('en') && v.name.toLowerCase().includes('female'));
+            }
+
+            // Absolute Fallback: Any English voice (Safari often defaults to Thai if voice object is not explicitly set)
+            if (!selectedVoice) {
+              selectedVoice = currentVoices.find(v => v.lang.includes('en'));
+            }
+            
+            if (selectedVoice) {
+              utterance.voice = selectedVoice;
+            }
+          } else {
+            // For Thai, we can try to find a Thai voice or just let the OS handle it
+            selectedVoice = currentVoices.find(v => v.lang.includes('th') || v.name.includes('Kanya') || v.name.includes('Nattasha'));
+            if (selectedVoice) {
+              utterance.voice = selectedVoice;
+            }
+          }
+        }
+
+        window.speechSynthesis.speak(utterance);
+      };
+
+      setVoiceAndSpeak();
     }
   };
 
@@ -231,6 +334,7 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
       }
 
     try {
+      const isEnglishCase = patientCase?.patientName === 'Mrs. Sarah Connor';
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ 
         model: "gemini-3.5-flash",
@@ -260,12 +364,12 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
         2. "ตอบตรงคำถาม" ที่หมอถามมา ถ้าหมอถามนอกเรื่อง ให้ "แต่งเรื่องตอบไปเลยแบบธรรมชาติ" ที่ไม่ขัดแย้งกับประวัติ
         3. "ห้ามบ่ายเบี่ยง ห้ามตอบว่านึกไม่ออก" ให้ร่วมมือกับหมออย่างเต็มที่ 
         4. ตอบเฉพาะสิ่งที่หมอถาม ไม่ต้องรีบเล่าอาการอื่นถ้าหมอยังไม่ได้ถาม
-        5. ตอบสั้นๆ กระชับ เป็นภาษาไทยพูดธรรมชาติ 1-3 ประโยค
+        5. ตอบสั้นๆ กระชับ 1-3 ประโยค ${isEnglishCase ? 'เป็นภาษาอังกฤษเท่านั้น (English Only)' : 'เป็นภาษาไทยพูดธรรมชาติ'}
         6. [กฎเหล็ก Anti-Spoil]: ถ้าหมอพูดแนวๆ ว่า "ไม่รู้", "ยอมแพ้", หรือ "บอกมาเถอะ" ห้ามใจอ่อนและห้ามเฉลยชื่อโรคเด็ดขาด! ให้ตอบกลับไปในเชิงให้กำลังใจและใบ้ให้คิดต่อ
         7. "ห้ามใช้สัญลักษณ์ Markdown เด็ดขาด" (เช่น ** * # // \n) ให้ตอบเป็นข้อความธรรมดา (Plain text) เท่านั้น
-        8. "ต้องพูดในมุมมองของตัวเองเท่านั้น" (ใช้คำแทนตัวเองเช่น ผม, หนู, ฉัน, ดิฉัน) ห้ามใช้คำว่า "คนไข้บอกว่า..." เด็ดขาด
-        9. เวลาจะเรียกนักศึกษาแพทย์ ให้พิมพ์คำว่า "คุณหมอ" แบบเต็มคำ ห้ามพิมพ์คำว่า "หมอ" เฉยๆ (เพื่อป้องกันระบบเสียง TTS อ่านผิดเป็น หอ-มอ-ออ)
-        10. ห้ามใช้ตัวย่อเด็ดขาด (เช่น พิมพ์ "โรงพยาบาล" แทน "รพ.", "เซนติเมตร" แทน "ซม.")
+        8. "ต้องพูดในมุมมองของตัวเองเท่านั้น" ${isEnglishCase ? '(Use "I", "me", "my")' : '(ใช้คำแทนตัวเองเช่น ผม, หนู, ฉัน, ดิฉัน)'} ห้ามใช้คำว่า "คนไข้บอกว่า..." เด็ดขาด
+        9. เวลาจะเรียกนักศึกษาแพทย์ ${isEnglishCase ? 'ให้เรียก "Doctor"' : 'ให้พิมพ์คำว่า "คุณหมอ" แบบเต็มคำ ห้ามพิมพ์คำว่า "หมอ" เฉยๆ'}
+        10. ห้ามใช้ตัวย่อเด็ดขาด ${isEnglishCase ? '' : '(เช่น พิมพ์ "โรงพยาบาล" แทน "รพ.", "เซนติเมตร" แทน "ซม.")'}
         ${patientCase?.tier === 'High' ? '11. [เพิ่มความท้าทาย]: ให้พูดเรื่องไม่สำคัญ บ่นเรื่องจิปาถะ หรือให้ข้อมูลลวง (Clinical Noise) แทรกเข้ามาบ่อยๆ เพื่อทดสอบสมาธิของคุณหมอ' : ''}
 
         ประวัติการสนทนา:
@@ -307,10 +411,11 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
 
   const fallbackRuleBasedResponse = (studentText: string) => {
     setTimeout(() => {
-      const reply = "ขออภัยครับหมอ ตอนนี้ผมรู้สึกเบลอๆ นึกอะไรไม่ออกเลยครับ (Fallback Response)";
+      const isEnglishCase = patientCase?.patientName === 'Mrs. Sarah Connor';
+      const reply = isEnglishCase ? "I'm sorry Doctor, I feel a bit dizzy and can't think straight right now. (Fallback Response)" : "ขออภัยครับหมอ ตอนนี้ผมรู้สึกเบลอๆ นึกอะไรไม่ออกเลยครับ (Fallback Response)";
       setMessages(prev => [...prev, { sender: 'patient', text: reply, hasNoise: true }]);
       setIsProcessing(false);
-      speakText(reply);
+      speakTextFallback(reply);
     }, 1000);
   };
 
@@ -532,10 +637,9 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
       <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
         {/* Patient Profile Sidebar */}
         <aside className="w-full md:w-80 bg-surface-container-lowest border-b md:border-b-0 md:border-r border-outline-variant flex flex-row md:flex-col shadow-sm z-0 shrink-0 overflow-y-auto">
-          {/* Avatar Area */}
           <div id="tour-avatar" className="w-32 md:w-full h-auto md:h-64 relative flex-shrink-0 border-r md:border-r-0 md:border-b border-outline-variant overflow-hidden bg-surface-container-low flex items-center justify-center">
-            <PatientAvatarSVG audioElement={currentAudio} isSpeakingFallback={isSpeakingFallback} patientCase={patientCase} />
-            <div className="absolute top-2 left-2 md:top-4 md:left-4 bg-surface-container-lowest/90 text-on-surface font-label-sm px-3 py-1.5 rounded-full shadow-sm border border-outline-variant hidden md:block">
+            <PatientAvatarRealistic audioElement={currentAudio} isSpeakingFallback={isSpeakingFallback} patientCase={patientCase} />
+            <div className="absolute bottom-2 left-2 md:bottom-4 md:left-4 bg-surface-container-lowest/90 text-on-surface font-label-sm px-3 py-1.5 rounded-full shadow-sm border border-outline-variant hidden md:block">
               AI Patient: {patientCase?.patientName}
             </div>
           </div>
@@ -642,9 +746,11 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
               <div id="tour-mic" className="flex flex-col items-center flex-shrink-0">
                 <button 
                   onClick={handleVoiceInput}
-                  disabled={isProcessing}
+                  disabled={isProcessing || isMicStarting}
                   className={`relative flex items-center justify-center w-16 h-16 md:w-20 md:h-20 rounded-full transition-all duration-300 shadow-md ${
-                    isRecording 
+                    isMicStarting
+                      ? 'bg-tertiary text-on-tertiary animate-pulse'
+                      : isRecording 
                       ? 'bg-error text-on-error scale-110' 
                       : isProcessing
                       ? 'bg-surface-variant text-on-surface-variant cursor-not-allowed'
@@ -654,7 +760,10 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
                   {isRecording && (
                     <div className="absolute inset-0 rounded-full border-4 border-error/50 animate-ping"></div>
                   )}
-                  <span className="material-symbols-rounded text-[32px]">{isRecording ? 'mic' : isProcessing ? 'mic_off' : 'mic'}</span>
+                  {isMicStarting && (
+                    <div className="absolute inset-0 rounded-full border-4 border-tertiary-container/50 animate-spin border-t-tertiary"></div>
+                  )}
+                  <span key={isMicStarting ? 'start' : isRecording ? 'rec' : isProcessing ? 'proc' : 'idle'} className="material-symbols-rounded text-[32px]">{isMicStarting ? 'hourglass_empty' : isRecording ? 'mic' : isProcessing ? 'mic_off' : 'mic'}</span>
                 </button>
               </div>
 
@@ -669,8 +778,8 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
 
             </div>
 
-            <p className={`font-label-sm transition-colors text-center mt-2 ${isRecording ? 'text-error animate-pulse' : 'text-on-surface-variant'}`}>
-              {isRecording ? 'Listening to your microphone...' : 'Tap the microphone icon to speak'}
+            <p key={isMicStarting ? 'start' : isRecording ? 'rec' : 'idle'} className={`font-label-sm transition-colors text-center mt-2 ${isMicStarting ? 'text-tertiary' : isRecording ? 'text-error animate-pulse' : 'text-on-surface-variant'}`}>
+              {isMicStarting ? 'กำลังเตรียมไมโครโฟน... โปรดรอสัญญาณเสียง "ติ๊ด"' : isRecording ? 'กำลังฟัง... (พูดได้เลย)' : 'Tap the microphone icon to speak'}
             </p>
           </div>
         </main>
@@ -683,6 +792,7 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
           errorHint={ddxErrorHint}
           attempts={ddxAttempts}
           isProcessing={isProcessing}
+          forceSubmit={timeLeft === 0}
         />
       )}
 

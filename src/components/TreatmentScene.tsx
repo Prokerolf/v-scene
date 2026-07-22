@@ -134,7 +134,7 @@ const TreatmentScene = ({ activeCase, onFinish, addLogAction, selectedDrugs, set
       status: finalStatus,
       message: finalStatus === 'success'
         ? `🎉 เย่! ถูกต้องแล้วครับ\n\nยอดเยี่ยมมาก คุณเลือกสั่งยาได้อย่างปลอดภัยและเหมาะสม\n\n💡 การให้ยาที่ถูกต้องตามข้อบ่งชี้ช่วยลดความพิการและเพิ่มโอกาสฟื้นตัวของผู้ป่วยได้มากครับ`
-        : `คุณตอบผิดครบ 3 ครั้ง ระบบขอเฉลยยาที่จำเป็นเพิ่มเติม\n\n🎯 ยาที่ควรสั่งคือ: ${missingDrugs.map((id: string) => drugOptions.find(d => d.id === id)?.name).join(', ')}`,
+        : `คุณตอบผิดครบ 3 ครั้ง ระบบขอเฉลยยาที่จำเป็นเพิ่มเติม\n\n🎯 ยาที่ควรสั่งคือ: ${missingDrugs.map((id: string) => drugOptions.find(d => d.id === id)?.name).join(', ')}\n\n💡 เหตุผลที่ควรให้: ${patientCase?.treatmentExplanation || 'เป็นมาตรฐานการรักษา (Gold Standard) สำหรับโรคนี้'}`,
       reason: reason
     });
   };

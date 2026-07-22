@@ -126,8 +126,8 @@ const DiagnosticSynthesisScene = ({ activeCase, onFinish, addLogAction, diagnost
         setDxFeedbackPopup({
           status: finalStatus,
           message: finalStatus === 'success'
-            ? `🎉 ยอดเยี่ยมมากครับคุณหมอ! \n\n🎯 การวินิจฉัยโรค: ${activeCase?.diseaseName} นั้นถูกต้องแม่นยำ\n\n💡 สาเหตุและกลไก: ${activeCase?.pathophysiology || 'พยาธิสภาพสอดคล้องกับอาการแสดงของผู้ป่วยรายนี้'}${correctSpellingFeedback}`
-            : `คุณตอบผิดครบ 3 ครั้ง ระบบขอเฉลยเพื่อให้คุณไปต่อ\n\n🎯 การวินิจฉัยที่ถูกต้องคือ: ${activeCase?.diseaseName}\n\n💡 สาเหตุและกลไก: ${activeCase?.pathophysiology || 'พยาธิสภาพสอดคล้องกับอาการแสดงของผู้ป่วยรายนี้'}`,
+            ? `🎉 ยอดเยี่ยมมากครับคุณหมอ! \n\n🎯 การวินิจฉัยโรค: ${activeCase?.diseaseName} นั้นถูกต้องแม่นยำ\n\n💡 สาเหตุและกลไก: ${activeCase?.diagnosisExplanation || 'พยาธิสภาพสอดคล้องกับอาการแสดงของผู้ป่วยรายนี้'}${correctSpellingFeedback}`
+            : `คุณตอบผิดครบ 3 ครั้ง ระบบขอเฉลยเพื่อให้คุณไปต่อ\n\n🎯 การวินิจฉัยที่ถูกต้องคือ: ${activeCase?.diseaseName}\n\n💡 สาเหตุและกลไก: ${activeCase?.diagnosisExplanation || 'พยาธิสภาพสอดคล้องกับอาการแสดงของผู้ป่วยรายนี้'}`,
           dx: inputValue,
           reason: reason
         });

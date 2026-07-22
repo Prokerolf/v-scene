@@ -94,23 +94,33 @@ function App() {
           try {
             const localSession = localStorage.getItem(`sme_cbl_session_${currentUser.uid}`);
             if (localSession) {
-              const data = JSON.parse(localSession);
-              if (data.activeCase) setActiveCase(data.activeCase);
-              if (data.preTestScore !== undefined) setPreTestScore(data.preTestScore);
-              if (data.preTestAnswers) setPreTestAnswers(data.preTestAnswers);
-              if (data.submittedDDx) setSubmittedDDx(data.submittedDDx);
-              if (data.finalDiagnosis) setFinalDiagnosis(data.finalDiagnosis);
-              if (data.selectedLabs) setSelectedLabs(data.selectedLabs);
-              if (data.selectedDrugs) setSelectedDrugs(data.selectedDrugs);
-              if (data.scratchpadText) setScratchpadText(data.scratchpadText);
-              if (data.studentActionsLog) setStudentActionsLog(data.studentActionsLog);
-              if (data.gatewayAnswers) setGatewayAnswers(data.gatewayAnswers);
-              if (data.gatewayIndex !== undefined) setGatewayIndex(data.gatewayIndex);
-              if (data.chatHistory) setChatHistory(data.chatHistory);
-              if (data.timeLeft !== undefined) setTimeLeft(data.timeLeft);
-              if (data.diagnosticInput !== undefined) setDiagnosticInput(data.diagnosticInput);
-              if (data.stage) setStage(data.stage);
-              else setStage('gateway');
+              try {
+                const data = JSON.parse(localSession);
+                if (data.session_version !== 'v5_no_somsri') {
+                  localStorage.removeItem(`sme_cbl_session_${currentUser.uid}`);
+                  setStage('gateway');
+                } else {
+                  if (data.activeCase) setActiveCase(data.activeCase);
+                  if (data.preTestScore !== undefined) setPreTestScore(data.preTestScore);
+                  if (data.preTestAnswers) setPreTestAnswers(data.preTestAnswers);
+                  if (data.submittedDDx) setSubmittedDDx(data.submittedDDx);
+                  if (data.finalDiagnosis) setFinalDiagnosis(data.finalDiagnosis);
+                  if (data.selectedLabs) setSelectedLabs(data.selectedLabs);
+                  if (data.selectedDrugs) setSelectedDrugs(data.selectedDrugs);
+                  if (data.scratchpadText) setScratchpadText(data.scratchpadText);
+                  if (data.studentActionsLog) setStudentActionsLog(data.studentActionsLog);
+                  if (data.gatewayAnswers) setGatewayAnswers(data.gatewayAnswers);
+                  if (data.gatewayIndex !== undefined) setGatewayIndex(data.gatewayIndex);
+                  if (data.chatHistory) setChatHistory(data.chatHistory);
+                  if (data.timeLeft !== undefined) setTimeLeft(data.timeLeft);
+                  if (data.diagnosticInput !== undefined) setDiagnosticInput(data.diagnosticInput);
+                  if (data.stage) setStage(data.stage);
+                  else setStage('gateway');
+                }
+              } catch (e) {
+                console.error("Error parsing session", e);
+                setStage('gateway');
+              }
             } else {
               setStage('gateway');
             }
@@ -142,14 +152,24 @@ function App() {
             casesSnap.forEach(doc => {
               const data = doc.data();
               if (data.status === 'deployed' || !data.status) {
-                customCases.push({ id: doc.id, ...data });
+                // If it's a built-in case, ALWAYS use the local version to prevent stale Firestore data from overriding updates.
+                const localMatch = CLINICAL_CASES.find(c => c.id === doc.id);
+                if (localMatch) {
+                  customCases.push({ ...localMatch, status: 'deployed' });
+                } else {
+                  customCases.push({ id: doc.id, ...data });
+                }
               }
             });
-            if (customCases.length > 0) {
-              setAvailableCases(customCases);
-            } else {
-              setAvailableCases(CLINICAL_CASES);
+            
+            // Ensure all built-in cases are included even if missing from Firestore
+            for (const localCase of CLINICAL_CASES) {
+              if (!customCases.some(c => c.id === localCase.id)) {
+                customCases.push({ ...localCase, status: 'deployed' });
+              }
             }
+            
+            setAvailableCases(customCases);
           } catch (e) {
             console.warn("Could not fetch custom cases", e);
           }
@@ -185,6 +205,7 @@ function App() {
           chatHistory,
           timeLeft,
           diagnosticInput,
+          session_version: 'v5_no_somsri',
           updatedAt: new Date().toISOString()
         };
         // Save to localStorage synchronously for instant F5 resilience
@@ -244,10 +265,8 @@ function App() {
         };
         // Update localStorage immediately
         const localSession = localStorage.getItem(`sme_cbl_session_${user.uid}`);
-        if (localSession) {
-          const parsed = JSON.parse(localSession);
-          localStorage.setItem(`sme_cbl_session_${user.uid}`, JSON.stringify({ ...parsed, ...resetData, stage: 'pretest' }));
-        }
+        const parsed = localSession ? JSON.parse(localSession) : {};
+        localStorage.setItem(`sme_cbl_session_${user.uid}`, JSON.stringify({ ...parsed, ...resetData, stage: 'pretest', session_version: 'v5_no_somsri' }));
 
         const sessionRef = doc(db, 'users', user.uid);
         await setDoc(sessionRef, resetData, { merge: true });
@@ -266,17 +285,14 @@ function App() {
     if (score <= 4) targetTier = 'Low';
     else if (score <= 7) targetTier = 'Mid';
 
-    const tierCases = availableCases.filter(c => c.tier === targetTier || (targetTier === 'Low' && c.id === 'mca_stroke_01') || (targetTier === 'Mid' && c.id === 'brown_sequard_01') || (targetTier === 'High' && c.id === 'wallenberg_01'));
+    // Find cases with the SAME disease as the active case
+    const sameDiseaseCases = availableCases.filter(c => c.diseaseName === activeCase.diseaseName);
+    const tierCases = sameDiseaseCases.filter(c => c.tier === targetTier);
     
-    // Pick a random case from the correct tier, or default to the hardcoded one if none available
-    let assignedCase;
+    // Pick a random case from the correct tier for THIS disease, or default to the originally clicked case
+    let assignedCase = activeCase;
     if (tierCases.length > 0) {
       assignedCase = tierCases[Math.floor(Math.random() * tierCases.length)];
-    } else {
-      // Fallback
-      if (score <= 4) assignedCase = CLINICAL_CASES[0];
-      else if (score <= 7) assignedCase = CLINICAL_CASES[1];
-      else assignedCase = CLINICAL_CASES[2];
     }
     
     setActiveCase(assignedCase);
@@ -314,7 +330,7 @@ function App() {
           onClick={handleFinishSplash}
         >
           <video 
-            src="/open.mp4" 
+            src="/open2.mov" 
             autoPlay 
             muted 
             playsInline
@@ -346,8 +362,8 @@ function App() {
         </div>
       )}
 
-      {role === 'teacher' && stage !== 'teacher' && (
-        <div className="fixed bottom-4 left-4 z-[999999] flex flex-col gap-2 items-start">
+      {stage !== 'teacher' && (
+        <div className="fixed bottom-16 left-4 z-[999999] flex flex-col gap-2 items-start">
           <button 
             onClick={() => setStage('teacher')}
             className="px-4 py-2 bg-indigo-900 text-white rounded-full shadow-lg font-bold text-sm hover:bg-indigo-800 hover:scale-105 transition-transform border-2 border-indigo-400 flex items-center gap-2"
@@ -356,6 +372,15 @@ function App() {
           </button>
         </div>
       )}
+
+      <div className="fixed bottom-4 left-4 z-[999999] flex flex-col gap-2 items-start">
+        <button 
+          onClick={handleSkipForDev}
+          className="px-4 py-2 bg-yellow-500 text-black rounded-full shadow-lg font-bold text-sm hover:bg-yellow-400 hover:scale-105 transition-transform flex items-center gap-2"
+        >
+          <span className="material-symbols-rounded text-[18px]">fast_forward</span> Skip for Dev
+        </button>
+      </div>
 
       {stage === 'gateway' && (
         <GatewayPreTest 

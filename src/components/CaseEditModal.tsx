@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { X, Image as ImageIcon, Save, CheckCircle, Plus, Trash2, Check } from 'lucide-react';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { doc, updateDoc, setDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../lib/firebase';
 import { labOptions } from './LabOrderScene';
 import { drugOptions } from './TreatmentScene';
 
@@ -72,6 +73,7 @@ const SearchableMultiSelect = ({
 export const CaseEditModal = ({ isOpen, onClose, caseData, onSave }: { isOpen: boolean, onClose: () => void, caseData: any, onSave: () => void }) => {
   const [editingCase, setEditingCase] = useState<any>(caseData);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('general');
 
   React.useEffect(() => {
@@ -133,6 +135,21 @@ export const CaseEditModal = ({ isOpen, onClose, caseData, onSave }: { isOpen: b
     });
   };
 
+  const handleLabImageUpload = async (labId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    setIsUploading(labId);
+    try {
+      const storageRef = ref(storage, `cases/${editingCase.id}/labs/${labId}_${Date.now()}_${file.name}`);
+      const snapshot = await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(snapshot.ref);
+      handleLabImageChange(labId, url);
+    } catch (err: any) {
+      alert("Error uploading image: " + err.message);
+    }
+    setIsUploading(null);
+  };
+
   const toggleArrayItem = (field: 'goldStandardLabs' | 'goldStandardDrugs' | 'contraindicatedDrugs', id: string) => {
     const currentArr = editingCase[field] || [];
     if (currentArr.includes(id)) {
@@ -142,15 +159,24 @@ export const CaseEditModal = ({ isOpen, onClose, caseData, onSave }: { isOpen: b
     }
   };
 
-  const handleSave = async (deploy: boolean = false) => {
+  const handleSave = async (targetStatus: 'draft' | 'deployed' | 'keep') => {
     setIsSaving(true);
     try {
       const caseRef = doc(db, 'cases', editingCase.id);
-      const updateData = {
+      
+      let finalStatus = editingCase.status;
+      if (targetStatus !== 'keep') {
+        finalStatus = targetStatus;
+      }
+      
+      const updateData = JSON.parse(JSON.stringify({
         ...editingCase,
-        status: deploy ? 'deployed' : 'draft'
-      };
-      await updateDoc(caseRef, updateData);
+        status: finalStatus
+      }));
+      
+      // Use setDoc with merge instead of updateDoc to handle cases that might not exist yet,
+      // and JSON.parse/stringify removes undefined values which crash Firestore.
+      await setDoc(caseRef, updateData, { merge: true });
       onSave();
       onClose();
     } catch (e: any) {
@@ -177,7 +203,7 @@ export const CaseEditModal = ({ isOpen, onClose, caseData, onSave }: { isOpen: b
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-outline-variant px-6 bg-surface-container-low/50 overflow-x-auto">
+        <div className="flex flex-wrap border-b border-outline-variant px-6 bg-surface-container-low/50">
           {[
             { id: 'general', label: 'General Info' },
             { id: 'pretest', label: 'Pre-Test' },
@@ -228,6 +254,10 @@ export const CaseEditModal = ({ isOpen, onClose, caseData, onSave }: { isOpen: b
                     <option value="High">High</option>
                   </select>
                 </div>
+              </div>
+              <div>
+                <label className="block font-label-sm mb-1 text-on-surface-variant">Tier Explanation (คำอธิบายระดับความยากที่ AI วิเคราะห์)</label>
+                <textarea value={editingCase.tierExplanation || ''} onChange={e => updateField('tierExplanation', e.target.value)} placeholder="เช่น เคสนี้ยากเพราะมีโรคแทรกซ้อนที่ต้องอาศัยการแปลผลแล็บที่ซับซ้อน..." className="w-full bg-surface border border-outline-variant rounded-lg px-3 py-2 text-sm focus:border-primary outline-none" rows={2} />
               </div>
               <div>
                 <label className="block font-label-sm mb-1 text-on-surface-variant">Chief Complaint</label>
@@ -332,8 +362,8 @@ export const CaseEditModal = ({ isOpen, onClose, caseData, onSave }: { isOpen: b
                           </div>
                           <div>
                             <label className="block font-label-sm text-on-surface-variant mb-1">Image URL (Optional)</label>
-                            <div className="flex gap-2 mb-2">
-                              <ImageIcon className="w-5 h-5 text-on-surface-variant shrink-0 mt-2" />
+                            <div className="flex gap-2 mb-2 items-center">
+                              <ImageIcon className="w-5 h-5 text-on-surface-variant shrink-0" />
                               <input
                                 type="text"
                                 value={labResult.imageUrl || ''}
@@ -342,9 +372,31 @@ export const CaseEditModal = ({ isOpen, onClose, caseData, onSave }: { isOpen: b
                                 placeholder="https://..."
                               />
                             </div>
+                            
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-xs text-on-surface-variant uppercase tracking-wider">or</span>
+                              <label className="cursor-pointer bg-secondary-container text-on-secondary-container hover:bg-secondary-container/80 px-3 py-1.5 rounded-full text-xs font-bold transition-colors inline-flex items-center gap-1">
+                                {isUploading === labId ? 'Uploading...' : 'Upload Image'}
+                                <input 
+                                  type="file" 
+                                  accept="image/*" 
+                                  className="hidden" 
+                                  onChange={(e) => handleLabImageUpload(labId, e)}
+                                  disabled={isUploading === labId}
+                                />
+                              </label>
+                            </div>
+
                             {labResult.imageUrl && (
-                              <div className="mt-2 rounded-lg border border-outline-variant overflow-hidden bg-surface-variant/30 flex items-center justify-center">
-                                <img src={labResult.imageUrl} alt={labName} className="max-h-24 object-contain" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                              <div className="mt-2 rounded-lg border border-outline-variant overflow-hidden bg-surface-variant/30 flex items-center justify-center relative">
+                                <img src={labResult.imageUrl} alt={labName} className="max-h-32 object-contain" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                                <button 
+                                  onClick={() => handleLabImageChange(labId, '')}
+                                  className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 hover:bg-red-500 transition-colors"
+                                  title="Remove image"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
                               </div>
                             )}
                           </div>
@@ -386,25 +438,46 @@ export const CaseEditModal = ({ isOpen, onClose, caseData, onSave }: { isOpen: b
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-outline-variant bg-surface-container-low flex justify-between items-center">
+        <div className="px-6 py-4 border-t border-outline-variant bg-surface-container-low flex flex-wrap justify-between items-center gap-3">
           <button onClick={onClose} className="text-on-surface-variant font-label-md px-4 py-2 rounded-full hover:bg-surface-variant transition-colors">
             Cancel
           </button>
-          <div className="flex gap-3">
-            <button 
-              onClick={() => handleSave(false)}
-              disabled={isSaving}
-              className="bg-surface-container-highest text-on-surface font-label-md px-6 py-2.5 rounded-full hover:bg-outline-variant transition-colors flex items-center gap-2 shadow-sm"
-            >
-              <Save className="w-4 h-4" /> {isDeployed ? 'Unpublish to Draft' : 'Save Draft'}
-            </button>
-            <button 
-              onClick={() => handleSave(true)}
-              disabled={isSaving || isDeployed}
-              className={`font-label-md font-bold px-6 py-2.5 rounded-full shadow-md transition-colors flex items-center gap-2 ${isDeployed ? 'bg-primary-container text-on-primary-container cursor-default' : 'bg-primary text-on-primary hover:bg-primary-fixed-variant'}`}
-            >
-              <CheckCircle className="w-4 h-4" /> {isDeployed ? 'Deployed' : 'Publish (Deploy)'}
-            </button>
+          <div className="flex flex-wrap gap-3">
+            {isDeployed ? (
+              <>
+                <button 
+                  onClick={() => handleSave('draft')}
+                  disabled={isSaving}
+                  className="bg-error/10 text-error font-label-md px-6 py-2.5 rounded-full hover:bg-error/20 transition-colors flex items-center gap-2"
+                >
+                  <X className="w-4 h-4" /> Unpublish
+                </button>
+                <button 
+                  onClick={() => handleSave('keep')}
+                  disabled={isSaving}
+                  className="bg-primary text-on-primary font-label-md font-bold px-6 py-2.5 rounded-full shadow-md hover:bg-primary-fixed-variant transition-colors flex items-center gap-2"
+                >
+                  <Save className="w-4 h-4" /> Save Edits
+                </button>
+              </>
+            ) : (
+              <>
+                <button 
+                  onClick={() => handleSave('keep')}
+                  disabled={isSaving}
+                  className="bg-surface-container-highest text-on-surface font-label-md px-6 py-2.5 rounded-full hover:bg-outline-variant transition-colors flex items-center gap-2 shadow-sm"
+                >
+                  <Save className="w-4 h-4" /> Save Draft
+                </button>
+                <button 
+                  onClick={() => handleSave('deployed')}
+                  disabled={isSaving}
+                  className="bg-primary text-on-primary font-label-md font-bold px-6 py-2.5 rounded-full shadow-md hover:bg-primary-fixed-variant transition-colors flex items-center gap-2"
+                >
+                  <CheckCircle className="w-4 h-4" /> Publish Case
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

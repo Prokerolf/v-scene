@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Lock, FileSignature, AlertCircle, Search, X } from 'lucide-react';
 
-const DDxGateModal = ({ onSubmit, onCancel, errorHint, attempts, isProcessing }: { onSubmit: (ddx: string[], confidence: number, reason: string) => void, onCancel: () => void, errorHint: string | null, attempts: number, isProcessing: boolean }) => {
+const DDxGateModal = ({ onSubmit, onCancel, errorHint, attempts, isProcessing, forceSubmit }: { onSubmit: (ddx: string[], confidence: number, reason: string) => void, onCancel: () => void, errorHint: string | null, attempts: number, isProcessing: boolean, forceSubmit?: boolean }) => {
   const [inputValue, setInputValue] = useState('');
   const [ddxList, setDdxList] = useState<string[]>([]);
   const [reason, setReason] = useState('');
@@ -41,13 +41,15 @@ const DDxGateModal = ({ onSubmit, onCancel, errorHint, attempts, isProcessing }:
         {/* Banner */}
         <div className="bg-surface-container-low p-5 flex flex-col items-center justify-center gap-2 text-on-surface relative shrink-0 border-b border-outline-variant">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-secondary to-tertiary"></div>
-          <button 
-            onClick={onCancel}
-            className="absolute top-4 right-4 text-on-surface-variant hover:text-on-error hover:bg-error p-2 rounded-full transition-all bg-surface-container"
-            title="กลับไปซักประวัติต่อ"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {!forceSubmit && (
+            <button 
+              onClick={onCancel}
+              className="absolute top-4 right-4 text-on-surface-variant hover:text-on-error hover:bg-error p-2 rounded-full transition-all bg-surface-container"
+              title="กลับไปซักประวัติต่อ"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
           <Lock className="w-8 h-8 text-primary mb-1" />
           <h2 className="font-headline-md text-xl md:text-2xl font-bold text-center">ด่านคัดกรองโรค (The DDx Gate)</h2>
           <p className="font-label-md text-on-surface-variant text-sm font-medium">คุณต้องระบุ Differential Diagnosis (DDx) ก่อนที่จะไปสั่งตรวจ Lab ได้</p>
