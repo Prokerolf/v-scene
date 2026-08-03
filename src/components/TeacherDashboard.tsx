@@ -25,6 +25,8 @@ interface CaseLog {
   studyProgress?: number;
   preTestScore?: number;
   preTestAnswers?: number[];
+  postTestScore?: number;
+  postTestAnswers?: number[];
   assignedTier?: string;
   selectedLabs?: string[];
   selectedDrugs?: string[];
@@ -132,6 +134,46 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
       await fetchData();
     } catch (e: any) {
       alert("Error resetting cases: " + e.message);
+    }
+    setLoading(false);
+  };
+
+  const exportResearchDataCSV = async () => {
+    setLoading(true);
+    try {
+      const usersSnap = await getDocs(collection(db, 'users'));
+      const usersMap: Record<string, any> = {};
+      usersSnap.forEach(doc => {
+        usersMap[doc.id] = doc.data();
+      });
+
+      let csvContent = "StudentID,ConsentDate,AssignedCase,PreTest_Score,PostTest_Score,Diagnostic_Result,Selected_Labs_Count,Selected_Drugs_Count,AI_KnowledgeLevel,AI_CriticalThinking\n";
+      
+      logs.forEach(log => {
+        const user = usersMap[log.userId] || {};
+        const consentDate = user.consentDate || 'N/A';
+        const postTestScore = log.postTestScore !== undefined ? log.postTestScore : 'N/A';
+        const diagnosticAcc = log.finalDiagnosis ? `"${log.finalDiagnosis.replace(/"/g, '""')}"` : 'N/A';
+        const labsCount = log.selectedLabs ? log.selectedLabs.length : 0;
+        const drugsCount = log.selectedDrugs ? log.selectedDrugs.length : 0;
+        const aiLevel = log.yenjaiEvaluation ? log.yenjaiEvaluation.knowledgeLevel : 'N/A';
+        const aiThinking = log.yenjaiEvaluation ? `"${log.yenjaiEvaluation.criticalThinking.replace(/"/g, '""')}"` : 'N/A';
+        
+        csvContent += `${log.studentId || log.userId},${consentDate},${log.activeCaseId || 'N/A'},${log.preTestScore || 0},${postTestScore},${diagnosticAcc},${labsCount},${drugsCount},${aiLevel},${aiThinking}\n`;
+      });
+
+      // Include BOM for Excel UTF-8 support
+      const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `VScene_Research_Data_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (e) {
+      console.error("Export error", e);
+      alert("Failed to export data");
     }
     setLoading(false);
   };
@@ -480,8 +522,11 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
               <h2 className="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface mb-1">{t('teacher.dashboard_title')}</h2>
               <p className="font-body-md text-on-surface-variant">{t('teacher.dashboard_subtitle')}</p>
             </div>
-            <button className="hidden md:flex items-center gap-2 bg-primary text-on-primary px-6 py-2.5 rounded-full hover:bg-primary-fixed-variant transition-all font-label-md shadow-sm">
-              <span className="material-symbols-rounded text-[18px]">download</span> {t('teacher.export')}
+            <button 
+              onClick={exportResearchDataCSV}
+              className="hidden md:flex items-center gap-2 bg-primary text-on-primary px-6 py-2.5 rounded-full hover:bg-primary-fixed-variant transition-all font-label-md shadow-sm"
+            >
+              <span className="material-symbols-rounded text-[18px]">download</span> Export Research Data
             </button>
           </div>
 

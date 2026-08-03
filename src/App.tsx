@@ -15,6 +15,8 @@ import TeacherDashboard from './components/TeacherDashboard';
 import GatewayPreTest from './components/GatewayPreTest';
 import ScratchpadWidget from './components/ScratchpadWidget';
 import ReportBugWidget from './components/ReportBugWidget';
+import ConsentForm from './components/ConsentForm';
+import PostTest from './components/PostTest';
 import { CLINICAL_CASES } from './data/cases';
 import { signOut } from 'firebase/auth';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -24,13 +26,16 @@ function App() {
   const { t, i18n } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<'student' | 'teacher' | null>(null);
+  const [hasConsented, setHasConsented] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
-  const [stage, setStage] = useState<'gateway' | 'dashboard' | 'pretest' | 'history' | 'lab' | 'lab_results' | 'diagnostic' | 'treatment' | 'solution' | 'teacher'>('gateway');
+  const [stage, setStage] = useState<'gateway' | 'consent' | 'dashboard' | 'pretest' | 'history' | 'lab' | 'lab_results' | 'diagnostic' | 'treatment' | 'posttest' | 'solution' | 'teacher'>('gateway');
   const [availableCases, setAvailableCases] = useState<any[]>(CLINICAL_CASES);
 
   const [activeCase, setActiveCase] = useState<any>(null);
   const [preTestScore, setPreTestScore] = useState<number>(0);
   const [preTestAnswers, setPreTestAnswers] = useState<number[]>([]);
+  const [postTestScore, setPostTestScore] = useState<number | null>(null);
+  const [postTestAnswers, setPostTestAnswers] = useState<number[]>([]);
   const [submittedDDx, setSubmittedDDx] = useState<string>('');
   const [finalDiagnosis, setFinalDiagnosis] = useState<string>('');
   const [isEvaluatingYenjai, setIsEvaluatingYenjai] = useState(false);
@@ -133,15 +138,35 @@ function App() {
           try {
             const docRef = doc(db, 'users', currentUser.uid);
             const docSnap = await getDoc(docRef);
-            if (docSnap.exists() && docSnap.data().role === 'teacher') {
-              setRole('teacher');
-              setStage('teacher');
+            if (docSnap.exists()) {
+              const data = docSnap.data();
+              if (data.hasConsented === true) {
+                setHasConsented(true);
+              } else {
+                setHasConsented(false);
+                setStage('consent');
+              }
+
+              if (data.role === 'teacher') {
+                setRole('teacher');
+                setStage('teacher');
+              } else {
+                setRole('student');
+                // Force consent stage if student hasn't consented and they are trying to enter gateway/dashboard
+                if (data.hasConsented !== true) {
+                  setStage('consent');
+                }
+              }
             } else {
               setRole('student');
+              setHasConsented(false);
+              setStage('consent');
             }
           } catch (e) {
             console.warn("Could not fetch user data or case config from Firestore (expected during dev/offline)", e);
             setRole('student');
+            setHasConsented(false);
+            setStage('consent');
           }
 
           // Fetch deployed cases for student assignment
@@ -194,6 +219,8 @@ function App() {
           activeCase,
           preTestScore,
           preTestAnswers,
+          postTestScore,
+          postTestAnswers,
           submittedDDx,
           finalDiagnosis,
           selectedLabs,
@@ -231,6 +258,10 @@ function App() {
     setStudentActionsLog([]); // Reset logs for new case
     setCurrentLogId(null);
     setScratchpadText('');
+    setPreTestScore(0);
+    setPreTestAnswers([]);
+    setPostTestScore(null);
+    setPostTestAnswers([]);
     setSubmittedDDx('');
     setFinalDiagnosis('');
     setSelectedLabs([]);
@@ -313,11 +344,29 @@ function App() {
       case 'history': setStage('lab'); break;
       case 'lab': setStage('diagnostic'); break;
       case 'diagnostic': setStage('treatment'); break;
-      case 'treatment': setStage('solution'); break;
+      case 'treatment': setStage('posttest'); break;
+      case 'posttest': setStage('solution'); break;
       case 'solution': setStage('dashboard'); break;
       case 'teacher': setStage('dashboard'); break;
       default: break;
     }
+  };
+
+  const handleConsentAccept = async () => {
+    if (user) {
+      try {
+        const userRef = doc(db, 'users', user.uid);
+        await setDoc(userRef, { hasConsented: true, consentDate: new Date().toISOString() }, { merge: true });
+        setHasConsented(true);
+        setStage('gateway');
+      } catch (err) {
+        console.error("Error saving consent", err);
+      }
+    }
+  };
+
+  const handleConsentDecline = () => {
+    alert("ระบบนี้สงวนสิทธิ์ให้ผู้ที่ยินยอมเข้าร่วมวิจัยเท่านั้น หากคุณเปลี่ยนใจสามารถกด ยินยอม ได้ครับ");
   };
 
   return (
@@ -345,6 +394,8 @@ function App() {
         </div>
       ) : !user ? (
         <Auth />
+      ) : stage === 'consent' ? (
+        <ConsentForm onAccept={handleConsentAccept} onDecline={handleConsentDecline} />
       ) : (
         <div className="min-h-screen font-sans text-slate-800 bg-slate-50">
 
@@ -602,7 +653,7 @@ function App() {
                 }
                 
                 setIsEvaluatingYenjai(false);
-                setStage('solution');
+                setStage('posttest');
               }} 
             />
           </div>
@@ -616,6 +667,23 @@ function App() {
             />
           </div>
         </div>
+      )}
+
+      {stage === 'posttest' && (
+        <PostTest 
+          caseData={activeCase}
+          onComplete={async (score, answers) => {
+            setPostTestScore(score);
+            setPostTestAnswers(answers);
+            if (currentLogId) {
+              await updateDoc(doc(db, 'case_logs', currentLogId), {
+                postTestScore: score,
+                postTestAnswers: answers
+              });
+            }
+            setStage('solution');
+          }}
+        />
       )}
 
       {stage === 'solution' && (
