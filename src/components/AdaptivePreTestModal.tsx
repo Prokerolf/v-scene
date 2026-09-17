@@ -126,7 +126,7 @@ const AdaptivePreTestModal = ({ caseData, onClose, onCancel, addLogAction }: { c
                 </div>
               </div>
 
-              <h2 className="text-2xl md:text-3xl font-headline-md font-bold text-on-surface leading-snug mb-10">
+              <h2 className="text-xl md:text-2xl font-body-lg md:font-headline-sm font-bold text-on-surface leading-relaxed mb-10">
                 {PRE_TEST_QUESTIONS[step - 1].question}
               </h2>
 

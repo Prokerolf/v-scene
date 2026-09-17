@@ -50,6 +50,8 @@ interface CaseLog {
   diagnosisReason?: string;
   drugReason?: string;
   finalDiagnosis?: string;
+  timeSpent?: number;
+  hintsUsedCount?: number;
 }
 
 interface PatientCase {
@@ -107,12 +109,70 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
 
   const [isCaseGenModalOpen, setIsCaseGenModalOpen] = useState(false);
   const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
+  const [activePeriod, setActivePeriod] = useState<number>(1);
   const [diseaseInput, setDiseaseInput] = useState('');
   const [backgroundInput, setBackgroundInput] = useState('');
   const [isGeneratingCase, setIsGeneratingCase] = useState(false);
-  const [activeTab, setActiveTab] = useState<'monitoring' | 'approval' | 'bug_reports'>('monitoring');
+  const [activeTab, setActiveTab] = useState<'monitoring' | 'approval' | 'bug_reports' | 'allocation'>('allocation');
   const [bugReports, setBugReports] = useState<BugReport[]>([]);
   const [studentFilter, setStudentFilter] = useState<'all' | 'needs_help'>('all');
+
+  const [waitingUsers, setWaitingUsers] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (activeTab === 'allocation') {
+      fetchWaitingUsers();
+    }
+  }, [activeTab]);
+
+  const fetchWaitingUsers = async () => {
+    try {
+      const usersSnap = await getDocs(collection(db, 'users'));
+      const waiting: any[] = [];
+      usersSnap.forEach(doc => {
+        const data = doc.data();
+        if (data.role === 'student' && data.hasCompletedPretest && !data.allocatedCaseId) {
+          waiting.push({ id: doc.id, ...data });
+        }
+      });
+      setWaitingUsers(waiting);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const allocateStudents = async () => {
+    if (waitingUsers.length === 0) return alert('No waiting students');
+    setLoading(true);
+    try {
+      const batch = writeBatch(db);
+      const caseOptions = ['case_a', 'case_b', 'case_c'];
+      
+      let counts = { 'case_a': 0, 'case_b': 0, 'case_c': 0 };
+      
+      // Try to distribute them evenly
+      waitingUsers.forEach((user, idx) => {
+        // Just round-robin for simplicity
+        const assignedBaseCase = caseOptions[idx % 3];
+        const assignedTier = user.triageTiers?.[assignedBaseCase] || 'Low';
+        const finalCaseId = `${assignedBaseCase}_${assignedTier.toLowerCase()}`;
+        const allocatedGroup = idx % 2 === 0 ? 'A' : 'B';
+        
+        batch.update(doc(db, 'users', user.id), {
+          allocatedCaseId: finalCaseId,
+          allocatedGroup: allocatedGroup
+        });
+      });
+      
+      await batch.commit();
+      alert('Allocated ' + waitingUsers.length + ' students successfully!');
+      fetchWaitingUsers();
+    } catch (e: any) {
+      alert('Error allocating: ' + e.message);
+    }
+    setLoading(false);
+  };
+
 
   const resetToDefaultCases = async () => {
     if (!confirm("Are you sure you want to reset all cases to the system defaults (3 Cases)? This will delete all current cases in the database.")) return;
@@ -238,6 +298,9 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
       const configDoc = await getDoc(doc(db, 'settings', 'system_config'));
       if (configDoc.exists()) {
         setActiveCaseId(configDoc.data().activeCaseId);
+        if (configDoc.data().activePeriod) {
+          setActivePeriod(configDoc.data().activePeriod);
+        }
       }
 
       const bugReportsSnapshot = await getDocs(collection(db, 'bug_reports'));
@@ -419,6 +482,18 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
     setActiveCaseId(id);
   };
 
+  const toggleActivePeriod = async () => {
+    const newPeriod = activePeriod === 1 ? 2 : 1;
+    if (!confirm(`Are you sure you want to switch to Period ${newPeriod}? This will change the exam batch for all students.`)) return;
+    try {
+      await setDoc(doc(db, 'settings', 'system_config'), { activePeriod: newPeriod }, { merge: true });
+      setActivePeriod(newPeriod);
+      alert(`Successfully switched to Period ${newPeriod}!`);
+    } catch (e: any) {
+      alert("Error updating period: " + e.message);
+    }
+  };
+
   return (
     <div className="bg-surface text-on-surface overflow-hidden flex h-screen w-full font-body-md antialiased selection:bg-primary-container selection:text-on-primary-container">
       {/* Desktop Navigation Drawer */}
@@ -428,6 +503,24 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
         </div>
         <ul className="flex-1 flex flex-col gap-2">
           {/* Active/Inactive classes based on state */}
+          
+          <li>
+            <button 
+              onClick={() => setActiveTab('allocation')}
+              className={`w-full flex items-center gap-4 py-3 rounded-r-full mr-4 px-6 transition-all ${
+                activeTab === 'allocation' 
+                  ? 'bg-primary-container text-on-primary-container font-bold hover:bg-primary-fixed' 
+                  : 'text-on-surface-variant hover:bg-surface-variant font-label-md'
+              }`}
+            >
+              <span className="material-symbols-rounded">group_add</span>
+              <span className="font-label-md whitespace-nowrap">Allocation</span>
+              {waitingUsers.length > 0 && (
+                <span className="bg-primary text-on-primary text-xs px-2 py-0.5 rounded-full ml-auto">{waitingUsers.length}</span>
+              )}
+            </button>
+          </li>
+
           <li>
             <button 
               onClick={() => setActiveTab('monitoring')}
@@ -522,12 +615,20 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
               <h2 className="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface mb-1">{t('teacher.dashboard_title')}</h2>
               <p className="font-body-md text-on-surface-variant">{t('teacher.dashboard_subtitle')}</p>
             </div>
-            <button 
-              onClick={exportResearchDataCSV}
-              className="hidden md:flex items-center gap-2 bg-primary text-on-primary px-6 py-2.5 rounded-full hover:bg-primary-fixed-variant transition-all font-label-md shadow-sm"
-            >
-              <span className="material-symbols-rounded text-[18px]">download</span> Export Research Data
-            </button>
+            <div className="flex gap-3">
+              <button 
+                onClick={toggleActivePeriod}
+                className="hidden md:flex items-center gap-2 bg-secondary-container text-on-secondary-container px-6 py-2.5 rounded-full hover:bg-secondary-fixed transition-all font-label-md shadow-sm border border-outline-variant"
+              >
+                <span className="material-symbols-rounded text-[18px]">toggle_on</span> Current Phase: Period {activePeriod}
+              </button>
+              <button 
+                onClick={exportResearchDataCSV}
+                className="hidden md:flex items-center gap-2 bg-primary text-on-primary px-6 py-2.5 rounded-full hover:bg-primary-fixed-variant transition-all font-label-md shadow-sm"
+              >
+                <span className="material-symbols-rounded text-[18px]">download</span> Export Research Data
+              </button>
+            </div>
           </div>
 
           {/* KPI Summary Grid (Bento style) */}
@@ -580,6 +681,54 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
               </div>
             </div>
           </div>
+
+          
+          {activeTab === 'allocation' && (
+            <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl overflow-hidden mb-8 shadow-sm p-6">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="font-headline-md text-2xl text-on-surface">Student Allocation</h3>
+                  <p className="font-body-md text-on-surface-variant mt-2">There are {waitingUsers.length} students waiting in the lobby after completing their pre-test.</p>
+                </div>
+                <button 
+                  onClick={allocateStudents}
+                  disabled={waitingUsers.length === 0 || loading}
+                  className="bg-primary text-on-primary px-6 py-3 rounded-full font-label-md flex items-center gap-2 hover:bg-primary/90 disabled:opacity-50"
+                >
+                  <span className="material-symbols-rounded">shuffle</span>
+                  Batch Allocate Now
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-surface-container-low/50">
+                      <th className="font-label-sm text-on-surface-variant px-6 py-4 border-b border-outline-variant">Student ID</th>
+                      <th className="font-label-sm text-on-surface-variant px-6 py-4 border-b border-outline-variant">Case A Score (Tier)</th>
+                      <th className="font-label-sm text-on-surface-variant px-6 py-4 border-b border-outline-variant">Case B Score (Tier)</th>
+                      <th className="font-label-sm text-on-surface-variant px-6 py-4 border-b border-outline-variant">Case C Score (Tier)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {waitingUsers.map(user => (
+                      <tr key={user.id} className="hover:bg-surface-container-low transition-colors">
+                        <td className="px-6 py-4 border-b border-outline-variant font-bold">{user.username || user.id}</td>
+                        <td className="px-6 py-4 border-b border-outline-variant">{user.pretestScores?.case_a} ({user.triageTiers?.case_a})</td>
+                        <td className="px-6 py-4 border-b border-outline-variant">{user.pretestScores?.case_b} ({user.triageTiers?.case_b})</td>
+                        <td className="px-6 py-4 border-b border-outline-variant">{user.pretestScores?.case_c} ({user.triageTiers?.case_c})</td>
+                      </tr>
+                    ))}
+                    {waitingUsers.length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="text-center py-8 text-on-surface-variant">No students are currently waiting.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {activeTab === 'monitoring' && (
             <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl overflow-hidden mb-8 shadow-sm">
@@ -953,6 +1102,14 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
                       <span className="w-1/3 font-label-md">Pre-test Score:</span> 
                       <span className="w-2/3 font-bold text-primary">{selectedLog.preTestScore || 0}/9</span>
                     </div>
+                    <div className="flex border-b border-outline-variant/50 pb-2">
+                      <span className="w-1/3 font-label-md">Time Spent:</span> 
+                      <span className="w-2/3">{selectedLog.timeSpent !== undefined ? `${Math.floor(selectedLog.timeSpent / 60)}m ${selectedLog.timeSpent % 60}s` : 'N/A'}</span>
+                    </div>
+                    <div className="flex border-b border-outline-variant/50 pb-2">
+                      <span className="w-1/3 font-label-md">Hints Used:</span> 
+                      <span className="w-2/3">{selectedLog.hintsUsedCount !== undefined ? selectedLog.hintsUsedCount : 'N/A'}</span>
+                    </div>
                     <div className="flex flex-col border-b border-outline-variant/50 pb-2">
                       <div className="flex">
                         <span className="w-1/3 font-label-md">DDx:</span> 
@@ -1075,7 +1232,10 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
                   <h4 className="font-label-md text-on-surface mb-4 flex items-center gap-2"><span className="material-symbols-rounded">forum</span> Chat Transcript</h4>
                   <div className="space-y-4">
                     {selectedLog.chatHistory && Array.isArray(selectedLog.chatHistory) ? selectedLog.chatHistory.map((msg, idx) => (
-                      <div key={idx} className={`flex ${msg.sender === 'student' ? 'justify-end' : 'justify-start'}`}>
+                      <div key={idx} className={`flex flex-col ${msg.sender === 'student' ? 'items-end' : 'items-start'} mb-2`}>
+                        <span className="font-label-sm text-on-surface-variant mb-1 px-1">
+                          {msg.sender === 'student' ? selectedLog.studentName || 'Student' : 'Patient'}
+                        </span>
                         <div className={`max-w-[85%] rounded-2xl p-4 font-body-md shadow-sm ${
                           msg.sender === 'student' 
                             ? 'bg-primary-container text-on-primary-container rounded-tr-sm border border-primary/20' 

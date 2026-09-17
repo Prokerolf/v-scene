@@ -1,0 +1,507 @@
+[
+  {
+    "username": "admin",
+    "password": "password123",
+    "role": "admin"
+  },
+  {
+    "username": "VS001",
+    "password": "59301",
+    "role": "student"
+  },
+  {
+    "username": "VS002",
+    "password": "11785",
+    "role": "student"
+  },
+  {
+    "username": "VS003",
+    "password": "46951",
+    "role": "student"
+  },
+  {
+    "username": "VS004",
+    "password": "64023",
+    "role": "student"
+  },
+  {
+    "username": "VS005",
+    "password": "38570",
+    "role": "student"
+  },
+  {
+    "username": "VS006",
+    "password": "85225",
+    "role": "student"
+  },
+  {
+    "username": "VS007",
+    "password": "27081",
+    "role": "student"
+  },
+  {
+    "username": "VS008",
+    "password": "74356",
+    "role": "student"
+  },
+  {
+    "username": "VS009",
+    "password": "53610",
+    "role": "student"
+  },
+  {
+    "username": "VS010",
+    "password": "83828",
+    "role": "student"
+  },
+  {
+    "username": "VS011",
+    "password": "85641",
+    "role": "student"
+  },
+  {
+    "username": "VS012",
+    "password": "87663",
+    "role": "student"
+  },
+  {
+    "username": "VS013",
+    "password": "13076",
+    "role": "student"
+  },
+  {
+    "username": "VS014",
+    "password": "79357",
+    "role": "student"
+  },
+  {
+    "username": "VS015",
+    "password": "56088",
+    "role": "student"
+  },
+  {
+    "username": "VS016",
+    "password": "31703",
+    "role": "student"
+  },
+  {
+    "username": "VS017",
+    "password": "94170",
+    "role": "student"
+  },
+  {
+    "username": "VS018",
+    "password": "61142",
+    "role": "student"
+  },
+  {
+    "username": "VS019",
+    "password": "82882",
+    "role": "student"
+  },
+  {
+    "username": "VS020",
+    "password": "10890",
+    "role": "student"
+  },
+  {
+    "username": "VS021",
+    "password": "57415",
+    "role": "student"
+  },
+  {
+    "username": "VS022",
+    "password": "94871",
+    "role": "student"
+  },
+  {
+    "username": "VS023",
+    "password": "13616",
+    "role": "student"
+  },
+  {
+    "username": "VS024",
+    "password": "23330",
+    "role": "student"
+  },
+  {
+    "username": "VS025",
+    "password": "78947",
+    "role": "student"
+  },
+  {
+    "username": "VS026",
+    "password": "76302",
+    "role": "student"
+  },
+  {
+    "username": "VS027",
+    "password": "73143",
+    "role": "student"
+  },
+  {
+    "username": "VS028",
+    "password": "69922",
+    "role": "student"
+  },
+  {
+    "username": "VS029",
+    "password": "16849",
+    "role": "student"
+  },
+  {
+    "username": "VS030",
+    "password": "36332",
+    "role": "student"
+  },
+  {
+    "username": "VS031",
+    "password": "94766",
+    "role": "student"
+  },
+  {
+    "username": "VS032",
+    "password": "41350",
+    "role": "student"
+  },
+  {
+    "username": "VS033",
+    "password": "65144",
+    "role": "student"
+  },
+  {
+    "username": "VS034",
+    "password": "91862",
+    "role": "student"
+  },
+  {
+    "username": "VS035",
+    "password": "95760",
+    "role": "student"
+  },
+  {
+    "username": "VS036",
+    "password": "47388",
+    "role": "student"
+  },
+  {
+    "username": "VS037",
+    "password": "23705",
+    "role": "student"
+  },
+  {
+    "username": "VS038",
+    "password": "25015",
+    "role": "student"
+  },
+  {
+    "username": "VS039",
+    "password": "65599",
+    "role": "student"
+  },
+  {
+    "username": "VS040",
+    "password": "50577",
+    "role": "student"
+  },
+  {
+    "username": "VS041",
+    "password": "43953",
+    "role": "student"
+  },
+  {
+    "username": "VS042",
+    "password": "58173",
+    "role": "student"
+  },
+  {
+    "username": "VS043",
+    "password": "17037",
+    "role": "student"
+  },
+  {
+    "username": "VS044",
+    "password": "47427",
+    "role": "student"
+  },
+  {
+    "username": "VS045",
+    "password": "57653",
+    "role": "student"
+  },
+  {
+    "username": "VS046",
+    "password": "78648",
+    "role": "student"
+  },
+  {
+    "username": "VS047",
+    "password": "53928",
+    "role": "student"
+  },
+  {
+    "username": "VS048",
+    "password": "11433",
+    "role": "student"
+  },
+  {
+    "username": "VS049",
+    "password": "56935",
+    "role": "student"
+  },
+  {
+    "username": "VS050",
+    "password": "41540",
+    "role": "student"
+  },
+  {
+    "username": "VS051",
+    "password": "64594",
+    "role": "student"
+  },
+  {
+    "username": "VS052",
+    "password": "23558",
+    "role": "student"
+  },
+  {
+    "username": "VS053",
+    "password": "71177",
+    "role": "student"
+  },
+  {
+    "username": "VS054",
+    "password": "85880",
+    "role": "student"
+  },
+  {
+    "username": "VS055",
+    "password": "87760",
+    "role": "student"
+  },
+  {
+    "username": "VS056",
+    "password": "23852",
+    "role": "student"
+  },
+  {
+    "username": "VS057",
+    "password": "24636",
+    "role": "student"
+  },
+  {
+    "username": "VS058",
+    "password": "91252",
+    "role": "student"
+  },
+  {
+    "username": "VS059",
+    "password": "17721",
+    "role": "student"
+  },
+  {
+    "username": "VS060",
+    "password": "97570",
+    "role": "student"
+  },
+  {
+    "username": "VS061",
+    "password": "59865",
+    "role": "student"
+  },
+  {
+    "username": "VS062",
+    "password": "65621",
+    "role": "student"
+  },
+  {
+    "username": "VS063",
+    "password": "27098",
+    "role": "student"
+  },
+  {
+    "username": "VS064",
+    "password": "98238",
+    "role": "student"
+  },
+  {
+    "username": "VS065",
+    "password": "36133",
+    "role": "student"
+  },
+  {
+    "username": "VS066",
+    "password": "94742",
+    "role": "student"
+  },
+  {
+    "username": "VS067",
+    "password": "36868",
+    "role": "student"
+  },
+  {
+    "username": "VS068",
+    "password": "78537",
+    "role": "student"
+  },
+  {
+    "username": "VS069",
+    "password": "39160",
+    "role": "student"
+  },
+  {
+    "username": "VS070",
+    "password": "98873",
+    "role": "student"
+  },
+  {
+    "username": "VS071",
+    "password": "98780",
+    "role": "student"
+  },
+  {
+    "username": "VS072",
+    "password": "81845",
+    "role": "student"
+  },
+  {
+    "username": "VS073",
+    "password": "10572",
+    "role": "student"
+  },
+  {
+    "username": "VS074",
+    "password": "70392",
+    "role": "student"
+  },
+  {
+    "username": "VS075",
+    "password": "45031",
+    "role": "student"
+  },
+  {
+    "username": "VS076",
+    "password": "92267",
+    "role": "student"
+  },
+  {
+    "username": "VS077",
+    "password": "45883",
+    "role": "student"
+  },
+  {
+    "username": "VS078",
+    "password": "31596",
+    "role": "student"
+  },
+  {
+    "username": "VS079",
+    "password": "21665",
+    "role": "student"
+  },
+  {
+    "username": "VS080",
+    "password": "14258",
+    "role": "student"
+  },
+  {
+    "username": "VS081",
+    "password": "63680",
+    "role": "student"
+  },
+  {
+    "username": "VS082",
+    "password": "69510",
+    "role": "student"
+  },
+  {
+    "username": "VS083",
+    "password": "26143",
+    "role": "student"
+  },
+  {
+    "username": "VS084",
+    "password": "42630",
+    "role": "student"
+  },
+  {
+    "username": "VS085",
+    "password": "66907",
+    "role": "student"
+  },
+  {
+    "username": "VS086",
+    "password": "36045",
+    "role": "student"
+  },
+  {
+    "username": "VS087",
+    "password": "63162",
+    "role": "student"
+  },
+  {
+    "username": "VS088",
+    "password": "79504",
+    "role": "student"
+  },
+  {
+    "username": "VS089",
+    "password": "96506",
+    "role": "student"
+  },
+  {
+    "username": "VS090",
+    "password": "73950",
+    "role": "student"
+  },
+  {
+    "username": "VS091",
+    "password": "94269",
+    "role": "student"
+  },
+  {
+    "username": "VS092",
+    "password": "94517",
+    "role": "student"
+  },
+  {
+    "username": "VS093",
+    "password": "26920",
+    "role": "student"
+  },
+  {
+    "username": "VS094",
+    "password": "15561",
+    "role": "student"
+  },
+  {
+    "username": "VS095",
+    "password": "49977",
+    "role": "student"
+  },
+  {
+    "username": "VS096",
+    "password": "16983",
+    "role": "student"
+  },
+  {
+    "username": "VS097",
+    "password": "15552",
+    "role": "student"
+  },
+  {
+    "username": "VS098",
+    "password": "45289",
+    "role": "student"
+  },
+  {
+    "username": "VS099",
+    "password": "13895",
+    "role": "student"
+  },
+  {
+    "username": "VS100",
+    "password": "52421",
+    "role": "student"
+  }
+]

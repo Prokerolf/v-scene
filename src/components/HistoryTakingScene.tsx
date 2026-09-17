@@ -8,6 +8,7 @@ import "driver.js/dist/driver.css";
 import DDxGateModal from './DDxGateModal';
 import AdaptivePreTestModal from './AdaptivePreTestModal';
 import PatientAvatarRealistic, { sharedAudioCtx } from './PatientAvatarRealistic';
+import PatientAvatar3D from './PatientAvatar3D';
 import YenjaiChatWidget from './YenjaiChatWidget';
 import { useTranslation } from 'react-i18next';
 
@@ -64,7 +65,7 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
       prevBtnText: '⬅ ก่อนหน้า',
       doneBtnText: 'เข้าใจแล้ว!',
       steps: [
-        { element: '#tour-timer', popover: { title: 'เวลาจับเวลา', description: 'คุณมีเวลา 10 นาทีในการซักประวัติ บริหารเวลาให้ดีนะครับ!', side: "bottom", align: 'end' }},
+        { element: '#tour-timer', popover: { title: 'เวลาจับเวลา', description: 'คุณมีเวลา 11 นาทีในการซักประวัติ บริหารเวลาให้ดีนะครับ!', side: "bottom", align: 'end' }},
         { element: '#tour-avatar', popover: { title: 'คนไข้จำลอง AI', description: 'นี่คือคนไข้ของคุณในเคสนี้ ขยับปากและมีเสียงพูดตอบกลับได้สมจริง!', side: "right", align: 'start' }},
         { element: '#tour-cc', popover: { title: 'อาการสำคัญ (Chief Complaint)', description: 'อย่าลืมโฟกัสการซักประวัติให้สอดคล้องกับอาการสำคัญที่คนไข้มาหานะครับ', side: "bottom", align: 'start' }},
         { element: '#tour-vitals', popover: { title: 'สัญญาณชีพ (Vital Signs)', description: 'ข้อมูลสัญญาณชีพเบื้องต้นจากจุดคัดกรอง ไว้ใช้ประเมินความฉุกเฉินของคนไข้ครับ', side: "right", align: 'start' }},
@@ -78,7 +79,13 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeLeft(prev => (prev > 0 ? prev - 1 : 0));
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
     }, 1000);
     
     // Initialize speech synthesis voices early
@@ -93,6 +100,9 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
   }, []);
 
   useEffect(() => {
+    if (timeLeft === 60 && !showDDxGate) {
+      setAlertMessage("เหลือเวลาอีก 1 นาที! กรุณาสรุปข้อมูลและเตรียมให้การวินิจฉัยโรค (DDx)");
+    }
     if (timeLeft === 0 && !showDDxGate) {
       setShowDDxGate(true);
     }
@@ -206,21 +216,43 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
       sanitizedText = sanitizedText.replace(/รพ\./g, 'โรงพยาบาล');
       sanitizedText = sanitizedText.replace(/ซม\./g, 'เซนติเมตร');
 
-      const voiceProfile = patientCase?.voiceProfile || 'old_male';
-      const response = await fetch('https://us-central1-gen-lang-client-0374663187.cloudfunctions.net/synthesizeSpeech', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ text: sanitizedText, voiceProfile }),
-      });
+      const openAIApiKey = import.meta.env.VITE_OPENAI_API_KEY;
+      
+      let response;
+      if (openAIApiKey) {
+        // Determine voice based on gender
+        const isMale = patientCase?.gender === 'ชาย' || patientCase?.gender === 'Male' || patientCase?.gender === 'male';
+        const voice = isMale ? 'onyx' : 'nova';
+        
+        response = await fetch('https://api.openai.com/v1/audio/speech', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openAIApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'tts-1',
+            input: sanitizedText,
+            voice: voice,
+            speed: patientCase?.age >= 60 ? 0.9 : 1.0 // Slightly slower for elderly
+          }),
+        });
+      } else {
+        // Fallback to legacy cloud function if no OpenAI key
+        const voiceProfile = patientCase?.voiceProfile || 'old_male';
+        response = await fetch('https://us-central1-gen-lang-client-0374663187.cloudfunctions.net/synthesizeSpeech', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: sanitizedText, voiceProfile }),
+        });
+      }
 
       if (response.ok) {
         const audioBlob = await response.blob();
         const audioUrl = URL.createObjectURL(audioBlob);
         if (audioRef.current) {
           audioRef.current.src = audioUrl;
-          audioRef.current.load(); // Ensure browser loads it before playing
+          audioRef.current.load();
           setCurrentAudio(audioRef.current);
           try {
             await audioRef.current.play();
@@ -233,7 +265,7 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
               URL.revokeObjectURL(audioUrl);
             };
           } catch (playError) {
-            console.warn("Safari blocked auto-play, falling back to browser TTS", playError);
+            console.warn("Auto-play blocked, falling back to browser TTS", playError);
             setCurrentAudio(null);
             speakTextFallback(text);
           }
@@ -498,8 +530,10 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
           `;
           const result = await model.generateContent(prompt);
           setDdxErrorHint(result.response.text().trim());
+          addLogAction('hint', 'request', 'N/A', 'yenjai_hint');
         } catch (e) {
           setDdxErrorHint("เกือบถูกแล้วค่ะคุณหมอ! ลองพิจารณาอาการหลักของคนไข้ประกอบอีกครั้งนะคะ");
+          addLogAction('hint', 'request', 'N/A', 'yenjai_hint');
         }
         setIsProcessing(false);
         return; 
@@ -638,7 +672,7 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
         {/* Patient Profile Sidebar */}
         <aside className="w-full md:w-80 bg-surface-container-lowest border-b md:border-b-0 md:border-r border-outline-variant flex flex-row md:flex-col shadow-sm z-0 shrink-0 overflow-y-auto">
           <div id="tour-avatar" className="w-32 md:w-full h-auto md:h-64 relative flex-shrink-0 border-r md:border-r-0 md:border-b border-outline-variant overflow-hidden bg-surface-container-low flex items-center justify-center">
-            <PatientAvatarRealistic audioElement={currentAudio} isSpeakingFallback={isSpeakingFallback} patientCase={patientCase} />
+            <PatientAvatar3D audioElement={currentAudio} isSpeakingFallback={isSpeakingFallback} patientCase={patientCase} />
             <div className="absolute bottom-2 left-2 md:bottom-4 md:left-4 bg-surface-container-lowest/90 text-on-surface font-label-sm px-3 py-1.5 rounded-full shadow-sm border border-outline-variant hidden md:block">
               AI Patient: {patientCase?.patientName}
             </div>

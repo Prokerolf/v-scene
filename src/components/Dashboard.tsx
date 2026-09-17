@@ -8,7 +8,7 @@ import "driver.js/dist/driver.css";
 import logoImg from '../assets/logo.png';
 import { useTranslation } from 'react-i18next';
 
-const Dashboard = ({ onStartCase }: { onStartCase: (caseData: any) => void }) => {
+const Dashboard = ({ onStartCase, onStartPostTest }: { onStartCase: (caseData: any) => void, onStartPostTest: () => void }) => {
   const { t } = useTranslation();
   const [profile, setProfile] = useState<{name: string, studentId: string, role: string} | null>(null);
   const [latestLog, setLatestLog] = useState<any>(null);
@@ -16,6 +16,8 @@ const Dashboard = ({ onStartCase }: { onStartCase: (caseData: any) => void }) =>
   const [showNotifications, setShowNotifications] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [availableCases, setAvailableCases] = useState<any[]>(CLINICAL_CASES.filter(c => !c.id.startsWith('gen_')));
+  const [activePeriod, setActivePeriod] = useState<number>(1);
+  const [hasCompletedPosttest, setHasCompletedPosttest] = useState(false);
 
   const notifications = allLogs
     .filter(log => log.teacherFeedback)
@@ -33,10 +35,23 @@ const Dashboard = ({ onStartCase }: { onStartCase: (caseData: any) => void }) =>
           const docRef = doc(db, 'users', user.uid);
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
-            setProfile(docSnap.data() as any);
+            const data = docSnap.data() as any;
+            setProfile(data);
           }
 
           try {
+            const configDoc = await getDoc(doc(db, 'settings', 'system_config'));
+            let currentPeriod = 1;
+            if (configDoc.exists() && configDoc.data().activePeriod) {
+              currentPeriod = configDoc.data().activePeriod;
+            }
+            setActivePeriod(currentPeriod);
+            
+            if (docSnap.exists()) {
+               const data = docSnap.data() as any;
+               if (currentPeriod === 1 && data.hasCompletedPosttest_batch1) setHasCompletedPosttest(true);
+               if (currentPeriod === 2 && data.hasCompletedPosttest_batch2) setHasCompletedPosttest(true);
+            }
             const q = query(
               collection(db, 'case_logs'), 
               where('userId', '==', user.uid)
@@ -54,12 +69,12 @@ const Dashboard = ({ onStartCase }: { onStartCase: (caseData: any) => void }) =>
               setLatestLog(logsData[0]);
             }
             
-            if (!localStorage.getItem('force_sync_cases_english_v5')) {
+            if (!localStorage.getItem('force_sync_cases_v6_sme')) {
               for (const c of CLINICAL_CASES) {
                 const newCase = { ...c, status: 'deployed', timestamp: new Date().toISOString() };
                 await setDoc(doc(db, 'cases', c.id), newCase);
               }
-              localStorage.setItem('force_sync_cases_english_v5', 'true');
+              localStorage.setItem('force_sync_cases_v6_sme', 'true');
             }
 
             const casesSnapshot = await getDocs(collection(db, 'cases'));
@@ -93,8 +108,17 @@ const Dashboard = ({ onStartCase }: { onStartCase: (caseData: any) => void }) =>
                 return a.id.localeCompare(b.id);
               });
             }
+            // Filter cases by user's tier
+            let mappedTier = 'Low';
+            if (docSnap.exists()) {
+              const userData = docSnap.data();
+              if (userData.triageTier === 'Intermediate') mappedTier = 'Mid';
+              else if (userData.triageTier === 'Advanced') mappedTier = 'High';
+            }
+            const filteredCasesData = casesData.filter(c => c.tier === mappedTier && c.phase === currentPeriod);
+
             // Always set, even if empty (do not fallback to default cases if teacher undeployed all)
-            setAvailableCases(casesData);
+            setAvailableCases(filteredCasesData);
 
           } catch (e) {
             console.error("Error fetching logs", e);
@@ -127,7 +151,8 @@ const Dashboard = ({ onStartCase }: { onStartCase: (caseData: any) => void }) =>
     driverObj.drive();
   };
 
-  const uniqueCasesCompleted = new Set(allLogs.map(log => log.caseId)).size;
+  const completedCaseIds = new Set(allLogs.map(log => log.caseId));
+  const uniqueCasesCompleted = completedCaseIds.size;
   const progressPercent = availableCases.length > 0 
     ? Math.min(100, Math.round((uniqueCasesCompleted / availableCases.length) * 100)) 
     : 0;
@@ -145,6 +170,11 @@ const Dashboard = ({ onStartCase }: { onStartCase: (caseData: any) => void }) =>
     progressLabel = "Started";
     progressText = "Good start! Keep going to build your clinical reasoning.";
   }
+
+  const isGroup1 = profile?.allocatedGroup === 'A';
+  const isGroup2 = profile?.allocatedGroup === 'B';
+  const canDoCases = (activePeriod === 1 && isGroup1) || (activePeriod === 2 && isGroup2);
+  const canDoPosttest = !canDoCases || uniqueCasesCompleted >= availableCases.length;
 
   return (
     <div className="antialiased min-h-screen flex flex-col font-body-md text-body-md selection:bg-primary-container selection:text-on-primary-container">
@@ -223,7 +253,7 @@ const Dashboard = ({ onStartCase }: { onStartCase: (caseData: any) => void }) =>
       {/* Desktop NavigationDrawer / Sidebar */}
       <nav 
         id="tour-sidebar" 
-        className={`hidden md:flex flex-col h-screen fixed left-0 top-0 pt-[88px] z-30 bg-surface-container-low border-r border-outline-variant transition-all duration-300 ${
+        className={`hidden md:flex flex-col h-screen fixed left-0 top-0 pt-[128px] z-30 bg-surface-container-low border-r border-outline-variant transition-all duration-300 ${
           isSidebarOpen ? 'w-72 translate-x-0' : 'w-0 -translate-x-full overflow-hidden border-none opacity-0'
         }`}
       >
@@ -275,10 +305,10 @@ const Dashboard = ({ onStartCase }: { onStartCase: (caseData: any) => void }) =>
           <div className="mt-auto bg-surface-container p-4 rounded-xl border border-outline-variant">
             <h3 className="font-label-md text-on-surface mb-2">Improvement Progress</h3>
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-full bg-outline-variant rounded-full h-2">
+              <div className="flex-1 bg-outline-variant rounded-full h-2">
                 <div className="bg-primary h-2 rounded-full transition-all duration-1000 ease-out" style={{ width: `${progressPercent}%` }}></div>
               </div>
-              <span className="font-label-sm text-primary whitespace-nowrap w-12 text-right">{progressLabel}</span>
+              <span className="font-label-sm text-primary whitespace-nowrap min-w-[64px] text-right">{progressLabel}</span>
             </div>
             <p className="font-label-sm text-on-surface-variant mt-2">{progressText}</p>
           </div>
@@ -286,7 +316,7 @@ const Dashboard = ({ onStartCase }: { onStartCase: (caseData: any) => void }) =>
       </nav>
 
       {/* Main Content Canvas */}
-      <main className={`flex-grow pt-[88px] pb-[80px] md:pb-8 flex flex-col px-4 md:px-10 py-8 gap-8 transition-all duration-300 ${
+      <main className={`flex-grow pt-[128px] pb-[80px] md:pb-8 flex flex-col px-4 md:px-10 gap-8 transition-all duration-300 ${
         isSidebarOpen ? 'md:ml-72' : 'md:ml-0'
       }`}>
         
@@ -298,45 +328,105 @@ const Dashboard = ({ onStartCase }: { onStartCase: (caseData: any) => void }) =>
           </p>
         </section>
 
+        {/* Post-test Section */}
+        {(!hasCompletedPosttest || canDoPosttest) && (
+          <div className={`bg-primary-container border ${canDoPosttest ? 'border-primary' : 'border-outline-variant'} text-on-primary-container p-8 rounded-2xl flex flex-col md:flex-row justify-between items-center gap-6 shadow-md mb-8 ${!canDoPosttest ? 'opacity-75 grayscale' : ''}`}>
+            <div>
+              <h3 className="font-headline-md text-2xl mb-2 flex items-center gap-2">
+                <span className="material-symbols-rounded">{hasCompletedPosttest ? 'verified' : (canDoPosttest ? 'assignment_turned_in' : 'lock')}</span> 
+                {hasCompletedPosttest ? 'Post-test Completed' : 'แบบทดสอบหลังเรียน (Post-test)'}
+              </h3>
+              <p className="font-body-md">
+                {!canDoCases 
+                  ? 'Since you are in the Traditional CBL group for this period, you can take the post-test now.'
+                  : (hasCompletedPosttest 
+                      ? 'คุณได้ทำแบบทดสอบหลังเรียนเสร็จสิ้นแล้ว ขอบคุณที่เข้าร่วมการเรียนรู้ครับ!'
+                      : (canDoPosttest 
+                          ? 'คุณทำครบทุกเคสแล้ว! สามารถทำแบบทดสอบหลังเรียน (Post-test) ได้เลยครับ'
+                          : `คุณต้องทำเคสให้ครบก่อนถึงจะปลดล็อคแบบทดสอบนี้ได้ (ทำไปแล้ว ${uniqueCasesCompleted}/${availableCases.length} เคส)`)
+                    )
+                }
+              </p>
+            </div>
+            {!hasCompletedPosttest && (
+              <button 
+                onClick={onStartPostTest}
+                disabled={!canDoPosttest}
+                className={`${canDoPosttest ? 'bg-primary text-on-primary hover:bg-primary/90 shadow-lg' : 'bg-surface-variant text-on-surface-variant cursor-not-allowed shadow-none'} font-headline-md px-8 py-4 rounded-full transition-all flex items-center gap-2 whitespace-nowrap`}
+              >
+                {canDoPosttest ? 'Take Post-test' : 'Locked'} <span className="material-symbols-rounded">{canDoPosttest ? 'arrow_forward' : 'lock'}</span>
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Assigned Cases Grid */}
         <div id="tour-cases" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {availableCases.map((caseData, idx) => (
-            <div key={caseData.id} className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow group">
-              <div className="flex flex-col gap-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="inline-block px-3 py-1 bg-secondary-container text-on-secondary-container font-label-sm rounded-full mb-3">
-                      Case 0{idx + 1}
-                    </span>
-                    <h3 className="font-headline-md text-on-surface mb-1 text-xl">
-                      {caseData.patientName ? `ผู้ป่วย: ${caseData.patientName}` : 'Clinical Simulation'}
-                    </h3>
+          {!canDoCases ? (
+            <div className="col-span-1 md:col-span-2 lg:col-span-3 bg-surface-container-low border border-outline-variant border-dashed rounded-xl p-10 flex flex-col justify-center items-center text-center opacity-80">
+                <div className="w-16 h-16 bg-surface-variant rounded-full flex items-center justify-center mb-4 text-on-surface-variant">
+                  <span className="material-symbols-rounded text-3xl">lock</span>
+                </div>
+                <h3 className="font-headline-md text-on-surface-variant mb-2 text-xl">Cases Locked for Period {activePeriod}</h3>
+                <p className="font-body-md text-on-surface-variant max-w-lg">
+                  You are assigned to the Traditional CBL group for this period. Please attend the class with your teacher.
+                </p>
+            </div>
+          ) : (
+            availableCases.map((caseData, idx) => {
+              const isCompleted = completedCaseIds.has(caseData.id);
+              return (
+              <div key={caseData.id} className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow group relative overflow-hidden">
+                {isCompleted && (
+                  <div className="absolute top-0 right-0 w-16 h-16 pointer-events-none">
+                    <div className="absolute top-4 right-[-20px] bg-green-500 text-white font-bold text-[10px] py-1 px-8 rotate-45 text-center shadow-sm">
+                      DONE
+                    </div>
                   </div>
-                  <div className="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center shrink-0 text-on-primary-container group-hover:bg-primary group-hover:text-on-primary transition-colors">
-                    <span className="material-symbols-rounded text-xl">vital_signs</span>
+                )}
+                <div className="flex flex-col gap-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="flex items-center flex-wrap gap-2 mb-3">
+                        <span className="inline-block px-3 py-1 bg-secondary-container text-on-secondary-container font-label-sm rounded-full">
+                          Case 0{idx + 1}
+                        </span>
+                        {isCompleted && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 font-label-sm rounded-full">
+                            <span className="material-symbols-rounded text-sm">check_circle</span> Done
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="font-headline-md text-on-surface mb-1 text-xl">
+                        {caseData.patientName ? `ผู้ป่วย: ${caseData.patientName}` : 'Clinical Simulation'}
+                      </h3>
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center shrink-0 text-on-primary-container group-hover:bg-primary group-hover:text-on-primary transition-colors z-10">
+                      <span className="material-symbols-rounded text-xl">vital_signs</span>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-surface-container-low border border-outline-variant rounded-lg p-4">
+                    <p className="font-label-sm text-on-surface-variant uppercase tracking-wider mb-1">Chief Complaint</p>
+                    <p className="font-body-md text-on-surface">{caseData.chiefComplaint}</p>
                   </div>
                 </div>
                 
-                <div className="bg-surface-container-low border border-outline-variant rounded-lg p-4">
-                  <p className="font-label-sm text-on-surface-variant uppercase tracking-wider mb-1">Chief Complaint</p>
-                  <p className="font-body-md text-on-surface">{caseData.chiefComplaint}</p>
+                <div className="mt-6">
+                  <button 
+                    onClick={() => onStartCase(caseData)}
+                    className={`w-full ${isCompleted ? 'bg-secondary text-on-secondary hover:bg-secondary/90' : 'bg-primary text-on-primary hover:bg-primary-fixed-variant'} font-label-md px-6 py-3 rounded-full transition-colors shadow-sm flex items-center justify-center gap-2`}
+                  >
+                    {isCompleted ? 'ทำซ้ำ (Replay Case)' : t('dashboard.start_case')}
+                    <span className="material-symbols-rounded text-[20px] group-hover:translate-x-1 transition-transform">{isCompleted ? 'replay' : 'arrow_forward'}</span>
+                  </button>
                 </div>
               </div>
-              
-              <div className="mt-6">
-                <button 
-                  onClick={() => onStartCase(caseData)}
-                  className="w-full bg-primary text-on-primary font-label-md px-6 py-3 rounded-full hover:bg-primary-fixed-variant transition-colors shadow-sm flex items-center justify-center gap-2"
-                >
-                  {t('dashboard.start_case')}
-                  <span className="material-symbols-rounded text-[20px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
-                </button>
-              </div>
-            </div>
-          ))}
+            )})
+          )}
 
           {/* Locked Cases Placeholder */}
-          {Array.from({ length: Math.max(0, 6 - availableCases.length) }).map((_, idx) => (
+          {canDoCases && Array.from({ length: Math.max(0, 3 - availableCases.length) }).map((_, idx) => (
              <div key={`locked-${idx}`} className="bg-surface-container-low border border-outline-variant border-dashed rounded-xl p-6 flex flex-col justify-center items-center text-center opacity-70">
                 <div className="w-12 h-12 bg-surface-variant rounded-full flex items-center justify-center mb-4 text-on-surface-variant">
                   <span className="material-symbols-rounded">lock</span>

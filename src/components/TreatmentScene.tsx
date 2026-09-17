@@ -117,8 +117,10 @@ const TreatmentScene = ({ activeCase, onFinish, addLogAction, selectedDrugs, set
           `;
           const result = await model.generateContent(prompt);
           setYenjaiHint(result.response.text().trim());
+          addLogAction('hint', 'request', 'N/A', 'yenjai_hint');
         } catch (e) {
           setYenjaiHint("พยายามได้ดีมากค่ะคุณหมอ! แต่ยังขาดยาสำคัญบางตัว ลองทบทวนดูอีกนิดนะคะ");
+          addLogAction('hint', 'request', 'N/A', 'yenjai_hint');
         }
         setIsProcessing(false);
         return; 

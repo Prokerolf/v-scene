@@ -81,9 +81,9 @@ const PostTest = ({ caseData, onComplete }: { caseData: ClinicalCase, onComplete
 
           {step > 0 && step <= POST_TEST_QUESTIONS.length && (
             <div className="flex-1 flex flex-col animate-in slide-in-from-right-4 duration-300">
-              <h3 className="text-2xl font-headline-md font-bold text-on-surface mb-8 leading-snug">
-                {POST_TEST_QUESTIONS[currentQuestion].question}
-              </h3>
+              <h2 className="text-xl md:text-2xl font-body-lg md:font-headline-sm font-bold text-on-surface leading-relaxed mb-10">
+                {POST_TEST_QUESTIONS[step - 1].question}
+              </h2>
               
               <div className="space-y-4 font-body-md">
                 {POST_TEST_QUESTIONS[currentQuestion].options.map((option, idx) => (

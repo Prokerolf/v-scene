@@ -110,8 +110,10 @@ const DiagnosticSynthesisScene = ({ activeCase, onFinish, addLogAction, diagnost
           `;
           const result = await model.generateContent(prompt);
           setYenjaiHint(result.response.text().trim());
+          addLogAction('hint', 'request', 'N/A', 'yenjai_hint');
         } catch (e) {
           setYenjaiHint("เข้าใกล้ความจริงแล้วค่ะคุณหมอ! ลองพิจารณาผลการตรวจร่างกายและแล็บประกอบกันดูนะคะ");
+          addLogAction('hint', 'request', 'N/A', 'yenjai_hint');
         }
         setIsProcessing(false);
         return; // Block Progression
