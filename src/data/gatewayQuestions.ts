@@ -3,9 +3,15 @@ export interface GatewayQuestion {
   question: string;
   options: string[];
   correctAnswerIndex: number;
-  relatedSlide: string;
-  caseKey: 'case_a' | 'case_b' | 'case_c';
+  relatedSlide?: string;
+  title?: string;
+  caseKey: 'case_a' | 'case_b' | 'case_c' | 'general';
+  explanation?: string;
+  category?: 'pretest_batch1' | 'pretest_batch2' | 'posttest' | 'kfp' | 'kfq';
+  createdByName?: string;
+  updatedAt?: string;
 }
+
 
 const generateQuestions = (): GatewayQuestion[] => {
   const questions: GatewayQuestion[] = [];

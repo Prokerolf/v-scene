@@ -2,7 +2,38 @@
   {
     "username": "admin",
     "password": "password123",
-    "role": "admin"
+    "role": "admin",
+    "displayName": "Admin"
+  },
+  {
+    "username": "khem",
+    "password": "12345",
+    "role": "admin",
+    "displayName": "Khem"
+  },
+  {
+    "username": "pich",
+    "password": "12345",
+    "role": "admin",
+    "displayName": "Pich"
+  },
+  {
+    "username": "far",
+    "password": "12345",
+    "role": "admin",
+    "displayName": "Far"
+  },
+  {
+    "username": "yihong",
+    "password": "12345",
+    "role": "admin",
+    "displayName": "Yihong"
+  },
+  {
+    "username": "bonus",
+    "password": "12345",
+    "role": "admin",
+    "displayName": "Bonus"
   },
   {
     "username": "VS001",

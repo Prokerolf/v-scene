@@ -78,68 +78,13 @@ const SolutionScene = ({
 
       <main className="max-w-5xl mx-auto w-full p-4 md:p-8 space-y-12 mt-4 relative z-10">
         
-        {/* ================= PART A: PRE-TEST REVIEW ================= */}
-        <section className="bg-surface-container-lowest rounded-3xl shadow-sm border border-outline-variant overflow-hidden">
-          <div className="bg-surface-container px-6 py-5 border-b border-outline-variant flex items-center gap-3">
-            <div className="bg-surface-container-high p-2.5 rounded-xl"><span className="material-symbols-rounded text-[24px] text-primary">psychology</span></div>
-            <h2 className="font-headline-md text-xl font-bold text-on-surface">Part A: Pre-test Review</h2>
-          </div>
-          <div className="p-6 md:p-8">
-            <div className="mb-8 flex flex-col md:flex-row items-center md:items-start gap-6 bg-surface-container-low p-6 rounded-2xl border border-outline-variant">
-              <div className="w-20 h-20 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container font-black text-3xl shrink-0">
-                {preTestScore}/{PRE_TEST_QUESTIONS.length}
-              </div>
-              <div className="text-center md:text-left">
-                <p className="font-headline-md text-lg text-on-surface mb-2">Your pre-test score unlocked the <strong>"{patientCase?.tier}"</strong> difficulty tier for this case.</p>
-                <p className="font-body-md text-on-surface-variant">Reviewing foundational concepts directly improves clinical localization accuracy.</p>
-              </div>
-            </div>
 
-            <div className="space-y-6">
-              {PRE_TEST_QUESTIONS.map((q: any, idx: number) => {
-                const isCorrect = preTestAnswers[idx] === q.correctAnswerIndex;
-                const studentAns = q.options[preTestAnswers[idx]];
-                const correctAns = q.options[q.correctAnswerIndex];
-
-                return (
-                  <div key={q.id} className={`p-5 md:p-6 rounded-2xl border ${isCorrect ? 'bg-primary-container/10 border-primary/20' : 'bg-error-container/10 border-error/20'}`}>
-                    <div className="flex flex-col sm:flex-row gap-4 items-start">
-                      {isCorrect ? (
-                        <span className="material-symbols-rounded text-[28px] text-primary shrink-0 sm:mt-0.5 hidden sm:block">check_circle</span>
-                      ) : (
-                        <span className="material-symbols-rounded text-[28px] text-error shrink-0 sm:mt-0.5 hidden sm:block">cancel</span>
-                      )}
-                      <div className="w-full">
-                        <p className="font-label-md text-base text-on-surface mb-3 flex items-start gap-2 leading-relaxed">
-                           {isCorrect ? (
-                            <span className="material-symbols-rounded text-[24px] text-primary shrink-0 mt-0.5 sm:hidden">check_circle</span>
-                          ) : (
-                            <span className="material-symbols-rounded text-[24px] text-error shrink-0 mt-0.5 sm:hidden">cancel</span>
-                          )}
-                          <span>{idx + 1}. {q.question}</span>
-                        </p>
-                        <div className="font-body-md text-sm md:text-base space-y-1.5 mb-4 bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/50">
-                          {!isCorrect && <p className="text-error line-through">Your Answer: {studentAns || 'Skipped'}</p>}
-                          <p className="text-primary font-bold">Correct Answer: {correctAns}</p>
-                        </div>
-                        <p className="font-body-md text-sm md:text-base text-on-surface-variant bg-surface-container-low p-4 rounded-xl border border-outline-variant/50 leading-relaxed shadow-sm">
-                          <span className="font-label-md text-primary mr-2 block sm:inline">Explanation:</span>
-                          {q.explanation}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
 
         {/* ================= PART B: CASE SOLUTION ================= */}
         <section className="bg-surface-container-lowest rounded-3xl shadow-sm border border-outline-variant overflow-hidden">
           <div className="bg-secondary-container/30 px-6 py-5 border-b border-outline-variant flex items-center gap-3">
             <div className="bg-secondary-container p-2.5 rounded-xl"><span className="material-symbols-rounded text-[24px] text-secondary">neurology</span></div>
-            <h2 className="font-headline-md text-xl font-bold text-on-surface">Part B: Case Solution ({patientCase?.diseaseName})</h2>
+            <h2 className="font-headline-md text-xl font-bold text-on-surface">Part A: Case Solution ({patientCase?.diseaseName})</h2>
           </div>
           <div className="p-6 md:p-8 space-y-8">
             
@@ -287,7 +232,7 @@ const SolutionScene = ({
           </div>
           <div className="px-6 py-6 border-b border-on-primary/10 flex items-center gap-3 relative z-10 bg-on-primary/5">
             <div className="bg-on-primary/20 p-2.5 rounded-xl backdrop-blur-sm"><span className="material-symbols-rounded text-[24px]">menu_book</span></div>
-            <h2 className="font-headline-md text-xl font-bold">Part C: AI Personalized Study Plan</h2>
+            <h2 className="font-headline-md text-xl font-bold">Part B: AI Personalized Study Plan</h2>
           </div>
           
           <div className="p-6 md:p-8 grid md:grid-cols-2 gap-6 relative z-10">

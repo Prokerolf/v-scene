@@ -8,7 +8,13 @@ import "driver.js/dist/driver.css";
 import logoImg from '../assets/logo.png';
 import { useTranslation } from 'react-i18next';
 
-const Dashboard = ({ onStartCase, onStartPostTest }: { onStartCase: (caseData: any) => void, onStartPostTest: () => void }) => {
+interface DashboardProps {
+  onStartCase: (caseData: any) => void;
+  onStartPreTest?: () => void;
+  onStartPostTest: () => void;
+}
+
+const Dashboard = ({ onStartCase, onStartPreTest, onStartPostTest }: DashboardProps) => {
   const { t } = useTranslation();
   const [profile, setProfile] = useState<{name: string, studentId: string, role: string} | null>(null);
   const [latestLog, setLatestLog] = useState<any>(null);
@@ -189,7 +195,7 @@ const Dashboard = ({ onStartCase, onStartPostTest }: { onStartCase: (caseData: a
             <span className="material-symbols-rounded text-[24px]">menu</span>
           </button>
           <div className="h-14 md:h-20 overflow-hidden flex items-center justify-center">
-            <img src={logoImg} alt="Bridge AI Logo" className="h-40 md:h-52 w-auto object-contain" />
+            <img src={logoImg} alt="V-SCENE Logo" className="h-40 md:h-52 w-auto object-contain" />
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -321,28 +327,74 @@ const Dashboard = ({ onStartCase, onStartPostTest }: { onStartCase: (caseData: a
       }`}>
         
         {/* Header */}
-        <section className="flex flex-col gap-2">
-          <h2 className="font-headline-xl text-on-surface">{t('dashboard.title')} {profile?.name ? profile.name.split(' ')[0] : 'Doctor'}</h2>
-          <p className="font-body-lg text-on-surface-variant max-w-2xl">
-            {t('dashboard.subtitle')}
-          </p>
+        <section className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface-container-low border border-outline-variant p-6 rounded-2xl shadow-xs">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="bg-primary text-on-primary font-bold text-xs px-3.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5 shadow-xs">
+                <span className="w-2 h-2 rounded-full bg-primary-fixed-dim animate-pulse"></span>
+                Phase {activePeriod} (Period {activePeriod})
+              </span>
+              {profile?.allocatedGroup && (
+                <span className="text-xs text-on-secondary-container font-bold bg-secondary-container px-3.5 py-1 rounded-full border border-secondary/30">
+                  Group {profile.allocatedGroup}
+                </span>
+              )}
+            </div>
+            <h2 className="font-headline-xl text-on-surface">{t('dashboard.title')} {profile?.name ? profile.name.split(' ')[0] : 'Doctor'}</h2>
+            <p className="font-body-lg text-on-surface-variant max-w-2xl mt-1">
+              {t('dashboard.subtitle')}
+            </p>
+          </div>
         </section>
 
-        {/* Post-test Section */}
-        {(!hasCompletedPosttest || canDoPosttest) && (
-          <div className={`bg-primary-container border ${canDoPosttest ? 'border-primary' : 'border-outline-variant'} text-on-primary-container p-8 rounded-2xl flex flex-col md:flex-row justify-between items-center gap-6 shadow-md mb-8 ${!canDoPosttest ? 'opacity-75 grayscale' : ''}`}>
+        {/* Pre-test & Post-test Cards Section (V-SCENE Material 3 CI Theme) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-2">
+          {/* Pre-test Card (Soft Blush Tint & Deep Dusty Plum Accent) */}
+          <div className="bg-primary-container/40 border border-outline-variant text-on-surface p-6 rounded-2xl flex flex-col justify-between gap-4 shadow-xs hover:shadow-md transition-all">
             <div>
-              <h3 className="font-headline-md text-2xl mb-2 flex items-center gap-2">
-                <span className="material-symbols-rounded">{hasCompletedPosttest ? 'verified' : (canDoPosttest ? 'assignment_turned_in' : 'lock')}</span> 
-                {hasCompletedPosttest ? 'Post-test Completed' : 'แบบทดสอบหลังเรียน (Post-test)'}
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold text-on-primary-fixed-variant bg-primary-container border border-outline-variant px-3 py-0.5 rounded-full uppercase tracking-wider">
+                  PHASE {activePeriod} PRE-TEST
+                </span>
+              </div>
+              <h3 className="font-headline-md text-xl mb-2 flex items-center gap-2 text-primary font-bold">
+                <span className="material-symbols-rounded text-primary">assignment_late</span> 
+                แบบทดสอบก่อนเรียน (Pre-test)
               </h3>
-              <p className="font-body-md">
+              <p className="text-sm text-on-surface-variant leading-relaxed">
+                ทำแบบทดสอบวัดความรู้พื้นฐานก่อนเรียนสำหรับ Phase {activePeriod} เพื่อประเมินและจัดสรรการเรียนรู้ที่เหมาะสม
+              </p>
+            </div>
+            <button 
+              onClick={onStartPreTest}
+              className="bg-primary text-on-primary hover:bg-[#5c3e4c] font-headline-md px-6 py-3 rounded-full transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-md w-full md:w-auto self-start mt-2 font-bold"
+            >
+              <span>Take Pre-test (Phase {activePeriod})</span>
+              <span className="material-symbols-rounded">arrow_forward</span>
+            </button>
+          </div>
+
+          {/* Post-test Card (V-SCENE Primary Container & Deep Plum) */}
+          <div className={`bg-primary-container/30 border ${canDoPosttest ? 'border-outline-variant' : 'border-outline-variant'} text-on-surface p-6 rounded-2xl flex flex-col justify-between gap-4 shadow-xs hover:shadow-md transition-all ${!canDoPosttest ? 'opacity-75 grayscale' : ''}`}>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold text-on-primary-fixed-variant bg-primary-container border border-outline-variant px-3 py-0.5 rounded-full uppercase tracking-wider">
+                  PHASE {activePeriod} POST-TEST
+                </span>
+              </div>
+              <h3 className="font-headline-md text-xl mb-2 flex items-center gap-2 text-primary font-bold">
+                <span className="material-symbols-rounded text-primary">
+                  {hasCompletedPosttest ? 'verified' : (canDoPosttest ? 'assignment_turned_in' : 'lock')}
+                </span> 
+                {hasCompletedPosttest ? `Post-test Completed (Phase ${activePeriod})` : `แบบทดสอบหลังเรียน (Post-test)`}
+              </h3>
+              <p className="text-sm text-on-surface-variant leading-relaxed">
                 {!canDoCases 
-                  ? 'Since you are in the Traditional CBL group for this period, you can take the post-test now.'
+                  ? `Since you are in the Traditional CBL group for Phase ${activePeriod}, you can take the post-test now.`
                   : (hasCompletedPosttest 
                       ? 'คุณได้ทำแบบทดสอบหลังเรียนเสร็จสิ้นแล้ว ขอบคุณที่เข้าร่วมการเรียนรู้ครับ!'
                       : (canDoPosttest 
-                          ? 'คุณทำครบทุกเคสแล้ว! สามารถทำแบบทดสอบหลังเรียน (Post-test) ได้เลยครับ'
+                          ? `คุณทำครบทุกเคสแล้ว! สามารถทำแบบทดสอบหลังเรียน (Post-test - Phase ${activePeriod}) ได้เลยครับ`
                           : `คุณต้องทำเคสให้ครบก่อนถึงจะปลดล็อคแบบทดสอบนี้ได้ (ทำไปแล้ว ${uniqueCasesCompleted}/${availableCases.length} เคส)`)
                     )
                 }
@@ -352,13 +404,14 @@ const Dashboard = ({ onStartCase, onStartPostTest }: { onStartCase: (caseData: a
               <button 
                 onClick={onStartPostTest}
                 disabled={!canDoPosttest}
-                className={`${canDoPosttest ? 'bg-primary text-on-primary hover:bg-primary/90 shadow-lg' : 'bg-surface-variant text-on-surface-variant cursor-not-allowed shadow-none'} font-headline-md px-8 py-4 rounded-full transition-all flex items-center gap-2 whitespace-nowrap`}
+                className={`${canDoPosttest ? 'bg-primary text-on-primary hover:bg-[#5c3e4c] shadow-sm hover:shadow-md' : 'bg-surface-variant text-on-surface-variant cursor-not-allowed shadow-none'} font-headline-md px-6 py-3 rounded-full transition-all flex items-center justify-center gap-2 w-full md:w-auto self-start mt-2 font-bold`}
               >
-                {canDoPosttest ? 'Take Post-test' : 'Locked'} <span className="material-symbols-rounded">{canDoPosttest ? 'arrow_forward' : 'lock'}</span>
+                <span>{canDoPosttest ? `Take Post-test (Phase ${activePeriod})` : 'Locked'}</span>
+                <span className="material-symbols-rounded">{canDoPosttest ? 'arrow_forward' : 'lock'}</span>
               </button>
             )}
           </div>
-        )}
+        </div>
 
         {/* Assigned Cases Grid */}
         <div id="tour-cases" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

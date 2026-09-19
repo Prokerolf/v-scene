@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { BATCH1_QUESTIONS, BATCH2_QUESTIONS } from '../data/exams';
+import { fetchAndMergeExamsForCategory } from '../lib/examUtils';
 import { LogOut } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 import { db, auth } from '../lib/firebase';
 import { doc, getDoc, updateDoc, getDocs, collection, query, where, runTransaction } from 'firebase/firestore';
+import { QuestionHighlighter } from './QuestionHighlighter';
 
 interface GatewayPreTestProps {
   onPass: () => void;
@@ -12,28 +14,57 @@ interface GatewayPreTestProps {
   setAnswers: (answers: number[]) => void;
   currentIndex: number;
   setCurrentIndex: (index: number) => void;
+  onSwitchToTeacher?: () => void;
 }
 
-const GatewayPreTest = ({ onPass, onLogout, answers, setAnswers, currentIndex, setCurrentIndex }: GatewayPreTestProps) => {
+const GatewayPreTest = ({ onPass, onLogout, answers, setAnswers, currentIndex, setCurrentIndex, onSwitchToTeacher }: GatewayPreTestProps) => {
+  const [questions, setQuestions] = useState<any[]>(BATCH1_QUESTIONS);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isWaiting, setIsWaiting] = useState(false);
   const [allocatedGroup, setAllocatedGroup] = useState<string | null>(null);
 
   const [activePeriod, setActivePeriod] = useState<number>(1);
-  const [questions, setQuestions] = useState(BATCH1_QUESTIONS);
-  
+  const [starredQuestions, setStarredQuestions] = useState<{ [qIndex: number]: boolean }>(() => {
+    try {
+      const saved = localStorage.getItem('vscene_gateway_starred');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+
+  const toggleStar = (qIdx: number) => {
+    setStarredQuestions(prev => ({ ...prev, [qIdx]: !prev[qIdx] }));
+  };
+
   useEffect(() => {
     const fetchConfig = async () => {
       try {
         const configDoc = await getDoc(doc(db, 'settings', 'system_config'));
-        if (configDoc.exists() && configDoc.data().activePeriod) {
-          const period = configDoc.data().activePeriod;
-          setActivePeriod(period);
-          if (period === 2) {
-            setQuestions(BATCH2_QUESTIONS);
-          } else {
-            setQuestions(BATCH1_QUESTIONS);
+        const period = (configDoc.exists() && configDoc.data().activePeriod) ? configDoc.data().activePeriod : 1;
+        setActivePeriod(period);
+
+        const targetCat = period === 2 ? 'pretest_batch2' : 'pretest_batch1';
+        const mergedQuestions = await fetchAndMergeExamsForCategory(targetCat);
+        setQuestions(mergedQuestions);
+
+        // Restore currentIndex & answers scoped to period
+        const savedIdx = localStorage.getItem(`vscene_gateway_p${period}_index`);
+        if (savedIdx !== null && !isNaN(Number(savedIdx))) {
+          const parsed = Number(savedIdx);
+          if (parsed >= 0 && parsed < 30) {
+            setCurrentIndex(parsed);
           }
+        }
+
+        const savedAns = localStorage.getItem(`vscene_gateway_p${period}_answers`);
+        if (savedAns) {
+          try {
+            const parsedAns = JSON.parse(savedAns);
+            if (Array.isArray(parsedAns) && parsedAns.length > 0) {
+              setAnswers(parsedAns);
+            }
+          } catch (e) {}
         }
       } catch (err) {
         console.error(err);
@@ -41,6 +72,26 @@ const GatewayPreTest = ({ onPass, onLogout, answers, setAnswers, currentIndex, s
     };
     fetchConfig();
   }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(`vscene_gateway_p${activePeriod}_starred`, JSON.stringify(starredQuestions));
+    } catch (e) {}
+  }, [starredQuestions, activePeriod]);
+
+  // Save currentIndex in real-time
+  useEffect(() => {
+    if (currentIndex >= 0 && currentIndex < 30) {
+      localStorage.setItem(`vscene_gateway_p${activePeriod}_index`, currentIndex.toString());
+    }
+  }, [currentIndex, activePeriod]);
+
+  // Save answers in real-time
+  useEffect(() => {
+    if (answers && answers.length > 0) {
+      localStorage.setItem(`vscene_gateway_p${activePeriod}_answers`, JSON.stringify(answers));
+    }
+  }, [answers, activePeriod]);
 
   // Poll for allocation if waiting
   useEffect(() => {
@@ -174,7 +225,13 @@ const GatewayPreTest = ({ onPass, onLogout, answers, setAnswers, currentIndex, s
 
   if (allocatedGroup) {
     return (
-      <div className="bg-background min-h-screen flex items-center justify-center p-6 antialiased">
+      <div className="bg-background min-h-screen flex flex-col items-center justify-center p-6 antialiased relative">
+        <button 
+          onClick={onPass}
+          className="absolute top-6 right-6 text-xs bg-error text-on-error hover:bg-error/90 px-4 py-2 rounded-full font-label-sm shadow-md transition-colors flex items-center gap-1 z-50 font-bold"
+        >
+          ⚡ Skip (Dev Pass to Dashboard)
+        </button>
          <div className="text-center bg-surface-container-lowest p-10 md:p-14 rounded-[32px] shadow-lg border border-outline-variant max-w-xl w-full animate-in zoom-in-95 duration-500">
             <span className="material-symbols-rounded text-primary text-[80px] mb-6 block mx-auto">
               campaign
@@ -196,18 +253,17 @@ const GatewayPreTest = ({ onPass, onLogout, answers, setAnswers, currentIndex, s
               )}
             </div>
             
-            <div className="flex justify-center">
-              {allocatedGroup === 'A' ? (
-                <button 
-                  onClick={onPass}
-                  className="bg-primary text-on-primary px-10 py-4 rounded-full font-label-lg shadow-md hover:bg-primary-fixed-variant transition-all flex items-center justify-center gap-3 w-full sm:w-auto"
-                >
-                  เข้าสู่ระบบ V-SCENE <span className="material-symbols-rounded">arrow_forward</span>
-                </button>
-              ) : (
+            <div className="flex flex-col sm:flex-row justify-center gap-3">
+              <button 
+                onClick={onPass}
+                className="bg-primary text-on-primary px-8 py-4 rounded-full font-label-lg shadow-md hover:bg-primary-fixed-variant transition-all flex items-center justify-center gap-3 w-full sm:w-auto font-bold"
+              >
+                เข้าสู่ระบบ V-SCENE <span className="material-symbols-rounded">arrow_forward</span>
+              </button>
+              {allocatedGroup === 'B' && (
                 <button 
                   onClick={onLogout}
-                  className="bg-surface-variant text-on-surface-variant px-10 py-4 rounded-full font-label-lg hover:bg-surface-container-highest transition-all flex items-center justify-center gap-3 w-full sm:w-auto"
+                  className="bg-surface-variant text-on-surface-variant px-8 py-4 rounded-full font-label-lg hover:bg-surface-container-highest transition-all flex items-center justify-center gap-3 w-full sm:w-auto"
                 >
                   ออกจากระบบ <span className="material-symbols-rounded">logout</span>
                 </button>
@@ -220,7 +276,13 @@ const GatewayPreTest = ({ onPass, onLogout, answers, setAnswers, currentIndex, s
 
   if (currentIndex >= 30 || isWaiting) {
     return (
-      <div className="bg-background text-on-background min-h-screen flex items-center justify-center p-4 md:p-6 font-body-md">
+      <div className="bg-background text-on-background min-h-screen flex flex-col items-center justify-center p-4 md:p-6 font-body-md relative">
+        <button 
+          onClick={onPass}
+          className="absolute top-6 right-6 text-xs bg-error text-on-error hover:bg-error/90 px-4 py-2 rounded-full font-label-sm shadow-md transition-colors flex items-center gap-1 z-50 font-bold"
+        >
+          ⚡ Skip (Dev Pass to Dashboard)
+        </button>
         <div className="bg-surface-container-lowest border border-outline-variant max-w-lg w-full rounded-3xl shadow-lg p-10 text-center animate-in zoom-in-95 duration-500">
           <span className="material-symbols-rounded text-primary text-[80px] mb-6 block mx-auto animate-pulse">
             hourglass_empty
@@ -234,12 +296,20 @@ const GatewayPreTest = ({ onPass, onLogout, answers, setAnswers, currentIndex, s
           </p>
           <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
           
-          <button 
-            onClick={onLogout}
-            className="text-on-surface-variant hover:text-error transition-colors mt-4 text-sm underline"
-          >
-            ออกจากระบบ
-          </button>
+          <div className="flex flex-col gap-3">
+            <button 
+              onClick={onPass}
+              className="bg-primary text-on-primary py-3 rounded-full font-bold shadow hover:bg-primary/90 transition"
+            >
+              เข้าสู่ระบบ V-SCENE (Dev Bypass)
+            </button>
+            <button 
+              onClick={onLogout}
+              className="text-on-surface-variant hover:text-error transition-colors text-sm underline"
+            >
+              ออกจากระบบ
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -256,12 +326,22 @@ const GatewayPreTest = ({ onPass, onLogout, answers, setAnswers, currentIndex, s
         <div className="flex justify-between items-center px-4 md:px-6 py-4 w-full max-w-5xl mx-auto">
           <div className="flex items-center gap-3">
             <div className="h-14 md:h-20 overflow-hidden flex items-center justify-center">
-              <img src={logoImg} alt="Bridge AI Logo" className="h-40 md:h-52 w-auto object-contain" />
+              <img src={logoImg} alt="V-SCENE Logo" className="h-40 md:h-52 w-auto object-contain" />
             </div>
-            <span className="font-headline-md text-headline-md font-bold text-primary hidden sm:inline ml-2">Pre-Test (Triage)</span>
-            <span className="font-headline-md text-xl font-bold text-primary sm:hidden">Pre-Test</span>
+            <span className="font-headline-md text-headline-md font-bold text-primary hidden sm:inline ml-2">Pre-Test (Period {activePeriod})</span>
+            <span className="font-headline-md text-xl font-bold text-primary sm:hidden">Pre-Test (P{activePeriod})</span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {onSwitchToTeacher && (
+              <button 
+                onClick={onSwitchToTeacher}
+                className="text-xs bg-purple-700 hover:bg-purple-800 text-white px-3.5 py-1.5 rounded-full font-bold shadow-sm transition-all flex items-center gap-1.5"
+                title="สลับไปยังมุมมองอาจารย์ผู้สอน (Switch to Teacher View)"
+              >
+                <span className="material-symbols-rounded text-base">school</span>
+                <span className="hidden sm:inline">Teacher View</span>
+              </button>
+            )}
             <button 
               onClick={onPass}
               className="text-xs bg-error text-on-error hover:bg-error/90 px-3 py-1.5 rounded-full font-label-sm shadow-sm transition-colors"
@@ -282,26 +362,71 @@ const GatewayPreTest = ({ onPass, onLogout, answers, setAnswers, currentIndex, s
 
       {/* Main Content */}
       <main className="flex-grow flex flex-col items-center justify-start pt-8 pb-16 px-4 md:px-6 w-full max-w-3xl mx-auto">
-        {/* Progress Indicator */}
-        <div className="w-full mb-8 px-2">
-          <div className="flex justify-between items-center mb-3">
-            <span className="font-label-sm text-on-surface-variant uppercase tracking-widest">Question Progress</span>
-            <span className="font-label-md text-primary font-bold">{currentIndex + 1} / 30</span>
+        {/* Interactive Question Navigation Grid & Star Bar */}
+        <div className="w-full mb-6 bg-surface-container-lowest border border-outline-variant rounded-2xl p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <span className="font-label-sm text-on-surface-variant uppercase tracking-widest text-xs font-bold">
+              QUESTION PROGRESS ({answers.filter(a => a !== -1 && a !== undefined && a !== null).length} / {questions.length})
+            </span>
+
+            {/* Icon-Only Star / Bookmark Toggle Button */}
+            <button
+              onClick={() => toggleStar(currentIndex)}
+              className={`p-2 rounded-full transition flex items-center justify-center ${
+                starredQuestions[currentIndex]
+                  ? 'bg-amber-400 text-slate-950 shadow-sm ring-2 ring-amber-300'
+                  : 'bg-surface-container-low text-on-surface-variant hover:bg-amber-100 hover:text-amber-800'
+              }`}
+              title={starredQuestions[currentIndex] ? 'ติดดาวแล้ว' : 'ติดดาวข้อนี้'}
+            >
+              <span className="material-symbols-rounded text-lg">
+                {starredQuestions[currentIndex] ? 'star' : 'star_outline'}
+              </span>
+            </button>
           </div>
-          <div className="w-full h-3 bg-surface-container-highest rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-secondary-container transition-all duration-500 ease-in-out rounded-full" 
-              style={{ width: `${((currentIndex) / 30) * 100}%` }}
-            ></div>
+
+          {/* Interactive Question Grid 1..30 */}
+          <div className="grid grid-cols-10 sm:grid-cols-15 gap-1.5 pt-1">
+            {questions.map((_, qIdx) => {
+              const isCurrent = currentIndex === qIdx;
+              const isAnswered = answers[qIdx] !== -1 && answers[qIdx] !== undefined;
+              const isStarred = starredQuestions[qIdx];
+
+              let btnStyle = "bg-surface-container-low text-on-surface-variant border border-outline-variant hover:border-primary/50";
+              if (isCurrent) {
+                btnStyle = "bg-primary text-on-primary font-bold ring-2 ring-primary/40 shadow-sm scale-105";
+              } else if (isAnswered) {
+                btnStyle = "bg-emerald-100 text-emerald-800 border-emerald-300 font-bold";
+              }
+
+              return (
+                <button
+                  key={qIdx}
+                  onClick={() => setCurrentIndex(qIdx)}
+                  className={`relative h-9 rounded-lg text-xs font-mono font-bold transition flex items-center justify-center ${btnStyle}`}
+                  title={`ข้อที่ ${qIdx + 1}${isAnswered ? ' (ทำแล้ว)' : ''}${isStarred ? ' ⭐ (ติดดาว)' : ''}`}
+                >
+                  <span>{qIdx + 1}</span>
+                  {isStarred && (
+                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-amber-400 text-slate-950 rounded-full flex items-center justify-center text-[9px] font-bold shadow-xs">
+                      ★
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 
         {/* Question Container */}
         <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 md:p-10 w-full shadow-sm">
-          <div className="mb-8">
-            <h1 className="font-body-lg md:font-headline-sm text-xl md:text-2xl text-on-surface mb-6 leading-relaxed">
-              <span className="font-bold text-primary mr-2">{currentIndex + 1}.</span> {q.question}
-            </h1>
+          <div className="mb-6">
+            <QuestionHighlighter
+              questionId={`pretest_p${activePeriod}_q_${q.id || currentIndex}`}
+              questionNumber={currentIndex + 1}
+              questionText={q.question}
+              imageUrl={q.imageUrl || q.image}
+            />
           </div>
 
           {/* Options Form */}

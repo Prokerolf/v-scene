@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { BrainCircuit, CheckCircle2, ChevronRight, Loader2 } from 'lucide-react';
 import type { ClinicalCase } from '../data/cases';
+import { QuestionHighlighter } from './QuestionHighlighter';
 
 const PostTest = ({ caseData, onComplete }: { caseData: ClinicalCase, onComplete: (score: number, answers: number[]) => void }) => {
   const [step, setStep] = useState(0); // 0 = Intro, 1-N = Questions, N+1 = Loading
@@ -81,9 +82,13 @@ const PostTest = ({ caseData, onComplete }: { caseData: ClinicalCase, onComplete
 
           {step > 0 && step <= POST_TEST_QUESTIONS.length && (
             <div className="flex-1 flex flex-col animate-in slide-in-from-right-4 duration-300">
-              <h2 className="text-xl md:text-2xl font-body-lg md:font-headline-sm font-bold text-on-surface leading-relaxed mb-10">
-                {POST_TEST_QUESTIONS[step - 1].question}
-              </h2>
+              <div className="mb-6">
+                <QuestionHighlighter
+                  questionId={POST_TEST_QUESTIONS[step - 1].id || `post_test_${step}`}
+                  questionNumber={step}
+                  questionText={POST_TEST_QUESTIONS[step - 1].question}
+                />
+              </div>
               
               <div className="space-y-4 font-body-md">
                 {POST_TEST_QUESTIONS[currentQuestion].options.map((option, idx) => (

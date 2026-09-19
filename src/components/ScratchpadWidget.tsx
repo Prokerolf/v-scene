@@ -20,9 +20,9 @@ const ScratchpadWidget: React.FC<ScratchpadWidgetProps> = ({
 }) => {
   return (
     <div className="h-screen bg-surface-container-lowest border-l border-outline-variant flex flex-col shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)] overflow-hidden shrink-0 w-full font-body-md">
-      <div className="bg-primary text-on-primary px-4 py-3 flex items-center gap-2 shadow-sm shrink-0">
-        <PenTool className="w-5 h-5 flex-shrink-0" />
-        <h2 className="font-headline-md font-bold text-base md:text-lg truncate">กระดาษทด (Scratchpad)</h2>
+      <div className="bg-primary text-on-primary px-4 h-9 flex items-center gap-2 shadow-sm shrink-0 border-b border-primary-fixed-dim">
+        <PenTool className="w-4 h-4 flex-shrink-0" />
+        <h2 className="font-headline-md font-bold text-sm truncate">กระดาษทด (Scratchpad)</h2>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">

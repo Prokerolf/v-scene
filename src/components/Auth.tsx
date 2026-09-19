@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { auth, db } from '../lib/firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import logoImg from '../assets/logo.png';
 import { useTranslation } from 'react-i18next';
@@ -40,16 +40,21 @@ const Auth = () => {
       }
 
       if (user) {
-        const docRef = doc(db, 'users', user.uid);
-        const docSnap = await getDoc(docRef);
-        if (!docSnap.exists()) {
-          await setDoc(docRef, {
-            uid: user.uid,
-            username: upperUsername,
-            role: account.role,
-            createdAt: new Date().toISOString()
-          });
+        const nameToUse = account.displayName || upperUsername;
+        try {
+          await updateProfile(user, { displayName: nameToUse });
+        } catch (pErr) {
+          console.warn("Could not update profile displayName:", pErr);
         }
+
+        const docRef = doc(db, 'users', user.uid);
+        await setDoc(docRef, {
+          uid: user.uid,
+          username: upperUsername,
+          displayName: nameToUse,
+          role: account.role,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
       }
     } catch (err: any) {
       console.error(err);
@@ -91,14 +96,14 @@ const Auth = () => {
           </div>
         </div>
 
-        {/* CENTER: V-SCENE — big and dominant */}
-        <div className="relative z-10 flex flex-col items-center gap-6">
+        {/* CENTER: V-SCENE — big and dominant (50% larger) */}
+        <div className="relative z-10 flex flex-col items-center gap-6 my-auto py-6">
           <img
             src={logoImg}
             alt="V-SCENE Logo"
-            className="w-full h-auto object-contain drop-shadow-xl"
+            className="w-[320px] lg:w-[420px] xl:w-[500px] h-auto object-contain drop-shadow-2xl transition-all duration-300 transform scale-110"
           />
-          <p className="text-slate-600 text-center text-base xl:text-lg leading-relaxed max-w-sm">
+          <p className="text-slate-600 text-center text-base xl:text-lg leading-relaxed max-w-md font-medium">
             ระบบฝึกซักประวัติและให้เหตุผลทางคลินิกเสมือนจริง
           </p>
           <div className="flex items-center gap-3">
@@ -128,7 +133,7 @@ const Auth = () => {
             <div className="w-px h-6 bg-pink-200" />
             <img src="/assets/medvjr_logo.png" alt="MEDVJR" className="h-7 w-auto object-contain" />
           </div>
-          <img src={logoImg} alt="V-SCENE" className="w-[200px] sm:w-[260px] h-auto object-contain" />
+          <img src={logoImg} alt="V-SCENE" className="w-[300px] sm:w-[390px] h-auto object-contain drop-shadow-md" />
         </div>
 
         <div className="w-full max-w-sm sm:max-w-md">
@@ -203,6 +208,20 @@ const Auth = () => {
           </p>
         </div>
       </div>
+
+      {/* Yenjai mascot — fixed bottom right */}
+      <img
+        src="/assets/yenjai.png"
+        alt="น้องเย็นใจ"
+        className="fixed bottom-4 right-4 w-20 sm:w-24 md:w-28 lg:w-32 h-auto object-contain z-50 drop-shadow-lg pointer-events-none select-none"
+        style={{ animation: 'yenjaiFloat 3s ease-in-out infinite' }}
+      />
+      <style>{`
+        @keyframes yenjaiFloat {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-8px); }
+        }
+      `}</style>
     </div>
   );
 };

@@ -845,3 +845,40 @@ export const BATCH2_QUESTIONS: GatewayQuestion[] = [
     relatedSlide: ""
   }
 ];
+
+export const DEFAULT_KFP_QUESTIONS: any[] = [
+  {
+    id: "kfp_1",
+    caseKey: "case_a",
+    question: "KFP 1. A 35-year-old female presents with new-onset generalized seizures preceded by chronic dull headaches. Non-contrast brain CT reveals a cystic lesion with an invaginated scolex. Which baseline investigation MUST be performed prior to starting Albendazole?",
+    options: [
+      "a. Fundoscopic eye examination to rule out intraocular cysticercosis",
+      "b. Stool concentration examination for Taenia eggs",
+      "c. Serum IgE level measurement",
+      "d. Bone marrow aspiration",
+      "e. Liver biopsy"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Fundoscopy is mandatory to avoid blinding intraocular Herxheimer-like inflammatory reaction when starting antiparasitic therapy.",
+    relatedSlide: ""
+  }
+];
+
+export const DEFAULT_KFQ_QUESTIONS: any[] = [
+  {
+    id: "kfq_1",
+    caseKey: "case_a",
+    question: "KFQ 1. A 28-year-old patient passes white motile ribbon-like proglottids in stool. Microscopic examination confirms Taenia solium. Which morphological feature of the gravid proglottid is diagnostic for T. solium?",
+    options: [
+      "a. Presence of 7 to 13 main lateral uterine branches on each side",
+      "b. Presence of 15 to 30 main lateral uterine branches on each side",
+      "c. Presence of two longitudinal sucking grooves (bothria)",
+      "d. Absence of a lateral genital pore",
+      "e. Shell containing 4 to 8 polar filaments"
+    ],
+    correctAnswerIndex: 0,
+    explanation: "Taenia solium gravid proglottids have 7–13 main lateral uterine branches per side, whereas T. saginata has 15–30 branches.",
+    relatedSlide: ""
+  }
+];
+

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db, auth } from '../lib/firebase';
-import { collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, writeBatch, onSnapshot, deleteDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { CLINICAL_CASES } from '../data/cases';
@@ -11,6 +11,13 @@ import logoImg from '../assets/logo.png';
 import ReportBugWidget from './ReportBugWidget';
 import { CaseEditModal } from './CaseEditModal';
 import { ClassAnalyticsModal } from './ClassAnalyticsModal';
+import { ExamEditorModal, type ExamCategory } from './ExamEditorModal';
+import { ExamSimulationModal } from './ExamSimulationModal';
+import { MedicalAnalyticsModal } from './MedicalAnalyticsModal';
+import { AIQuestionAssistantModal } from './AIQuestionAssistantModal';
+import { ExamExporterModal } from './ExamExporterModal';
+import { BATCH1_QUESTIONS, BATCH2_QUESTIONS, DEFAULT_KFP_QUESTIONS, DEFAULT_KFQ_QUESTIONS } from '../data/exams';
+import { getResolvedExams, seedCategoryExamsToFirestore, resetQuestionToOriginal, clearAllCorruptedExamsFromFirestore } from '../lib/examUtils';
 import { useTranslation } from 'react-i18next';
 
 interface CaseLog {
@@ -113,9 +120,55 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
   const [diseaseInput, setDiseaseInput] = useState('');
   const [backgroundInput, setBackgroundInput] = useState('');
   const [isGeneratingCase, setIsGeneratingCase] = useState(false);
-  const [activeTab, setActiveTab] = useState<'monitoring' | 'approval' | 'bug_reports' | 'allocation'>('allocation');
+  const [activeTab, setActiveTab] = useState<'monitoring' | 'approval' | 'bug_reports' | 'allocation' | 'exam_bank'>('allocation');
   const [bugReports, setBugReports] = useState<BugReport[]>([]);
   const [studentFilter, setStudentFilter] = useState<'all' | 'needs_help'>('all');
+
+  // Exam Bank Real-time State
+  const [examCategory, setExamCategory] = useState<ExamCategory>('pretest_batch1');
+  const [examCaseFilter, setExamCaseFilter] = useState<'all' | 'case_a' | 'case_b' | 'case_c' | 'general'>('all');
+  const [dbExams, setDbExams] = useState<any[]>([]);
+  const [activeExamEditors, setActiveExamEditors] = useState<{ [docId: string]: { userName: string, category: string, questionId: string, updatedAt: string } }>({});
+  const [isExamModalOpen, setIsExamModalOpen] = useState(false);
+  const [editingExamItem, setEditingExamItem] = useState<any | null>(null);
+  const [isSeedingExams, setIsSeedingExams] = useState(false);
+
+  const handleSeedCurrentCategory = async () => {
+    if (!confirm(`คุณต้องการบันทึกข้อสอบตั้งต้นของหมวด ${examCategory} ลงฐานข้อมูล Firestore ทั้งหมดใช่หรือไม่?`)) return;
+    setIsSeedingExams(true);
+    try {
+      const count = await seedCategoryExamsToFirestore(examCategory);
+      alert(`บันทึกข้อสอบจำนวน ${count} ข้อลงฐานข้อมูลเรียบร้อยแล้ว!`);
+    } catch (err) {
+      console.error(err);
+      alert('เกิดข้อผิดพลาดในการบันทึกข้อสอบ');
+    } finally {
+      setIsSeedingExams(false);
+    }
+  };
+
+  const handleCleanAndRestoreExams = async () => {
+    if (!confirm('คุณต้องการล้างข้อสอบที่ซ้ำซ้อนและคืนค่าชุดข้อสอบมาตรฐานทั้งหมดหรือไม่? (ข้อสอบดั้งเดิมจะกลับมาครบทุกข้อ)')) return;
+    setLoading(true);
+    try {
+      await clearAllCorruptedExamsFromFirestore();
+      alert('ล้างข้อมูลข้อสอบซ้ำซ้อนและคืนค่าชุดข้อสอบมาตรฐานเรียบร้อยแล้ว!');
+    } catch (err: any) {
+      console.error(err);
+      alert('เกิดข้อผิดพลาดในการกู้คืนข้อสอบ: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Exam Simulation State
+  const [isSimModalOpen, setIsSimModalOpen] = useState(false);
+  const [simInitialIndex, setSimInitialIndex] = useState(0);
+
+  // System 1, 2, 6 Modals State
+  const [isMedicalAnalyticsOpen, setIsMedicalAnalyticsOpen] = useState(false);
+  const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
+  const [isExamExporterOpen, setIsExamExporterOpen] = useState(false);
 
   const [waitingUsers, setWaitingUsers] = useState<any[]>([]);
 
@@ -238,12 +291,102 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
     setLoading(false);
   };
 
+  const [activeEditors, setActiveEditors] = useState<{ [caseId: string]: { userName: string, updatedAt: string } }>({});
+
   useEffect(() => {
-    fetchData();
+    setLoading(true);
+
+    // 1. Real-time Cases Listener (Multi-user sync for cases)
+    const unsubscribeCases = onSnapshot(collection(db, 'cases'), async (snapshot) => {
+      const casesData: PatientCase[] = [];
+      if (snapshot.empty) {
+        console.log("Migrating default cases to Firestore...");
+        for (const c of CLINICAL_CASES) {
+          const newCase = { ...c, status: 'deployed', timestamp: new Date().toISOString() };
+          await setDoc(doc(db, 'cases', c.id), newCase);
+          casesData.push(newCase as unknown as PatientCase);
+        }
+      } else {
+        snapshot.forEach((docSnap) => {
+          casesData.push({ id: docSnap.id, ...docSnap.data() } as PatientCase);
+        });
+      }
+
+      const order = ['case_covid_pneumonia', 'case_diaphragmatic_paralysis', 'case_paragonimus'];
+      casesData.sort((a, b) => {
+        const indexA = order.indexOf(a.id || '');
+        const indexB = order.indexOf(b.id || '');
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+        return (a.id || '').localeCompare(b.id || '');
+      });
+      setCases(casesData);
+      setLoading(false);
+    }, (error) => {
+      console.error("Real-time cases sync error", error);
+      setLoading(false);
+    });
+
+    // 2. Real-time System Config Listener
+    const unsubscribeConfig = onSnapshot(doc(db, 'settings', 'system_config'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.activeCaseId) setActiveCaseId(data.activeCaseId);
+        if (data.activePeriod) setActivePeriod(data.activePeriod);
+      }
+    }, console.error);
+
+    // 3. Real-time Active Editors Presence Listener
+    const unsubscribeEditors = onSnapshot(collection(db, 'active_editors'), (snapshot) => {
+      const editorsMap: { [caseId: string]: { userName: string, updatedAt: string } } = {};
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data.userName && data.caseId) {
+          editorsMap[data.caseId] = { userName: data.userName, updatedAt: data.updatedAt };
+        }
+      });
+      setActiveEditors(editorsMap);
+    }, console.error);
+
+    // 4. Real-time Exams Listener
+    const unsubscribeExams = onSnapshot(collection(db, 'exams'), (snapshot) => {
+      const examList: any[] = [];
+      snapshot.forEach((docSnap) => {
+        examList.push({ docId: docSnap.id, ...docSnap.data() });
+      });
+      setDbExams(examList);
+    }, console.error);
+
+    // 5. Real-time Active Exam Editors Presence Listener
+    const unsubscribeExamEditors = onSnapshot(collection(db, 'active_exam_editors'), (snapshot) => {
+      const editorsMap: { [docId: string]: { userName: string, category: string, questionId: string, updatedAt: string } } = {};
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data.userName && data.editingQuestionId) {
+          editorsMap[`${data.category}_${data.editingQuestionId}`] = {
+            userName: data.userName,
+            category: data.category,
+            questionId: data.editingQuestionId,
+            updatedAt: data.updatedAt
+          };
+        }
+      });
+      setActiveExamEditors(editorsMap);
+    }, console.error);
+
+    fetchLogsAndBugs();
+
+    return () => {
+      unsubscribeCases();
+      unsubscribeConfig();
+      unsubscribeEditors();
+      unsubscribeExams();
+      unsubscribeExamEditors();
+    };
   }, []);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchLogsAndBugs = async () => {
     try {
       const querySnapshot = await getDocs(collection(db, 'case_logs'));
       const logsData: CaseLog[] = [];
@@ -268,41 +411,6 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
       logsData.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setLogs(logsData);
 
-      const casesSnapshot = await getDocs(collection(db, 'cases'));
-      const casesData: PatientCase[] = [];
-      
-      if (casesSnapshot.empty) {
-        console.log("Migrating default cases to Firestore...");
-        for (const c of CLINICAL_CASES) {
-          const newCase = { ...c, status: 'deployed', timestamp: new Date().toISOString() };
-          await setDoc(doc(db, 'cases', c.id), newCase);
-          casesData.push(newCase as unknown as PatientCase);
-        }
-      } else {
-        casesSnapshot.forEach((doc) => {
-          casesData.push({ id: doc.id, ...doc.data() } as PatientCase);
-        });
-      }
-      
-      const order = ['case_covid_pneumonia', 'case_diaphragmatic_paralysis', 'case_paragonimus'];
-      casesData.sort((a, b) => {
-        const indexA = order.indexOf(a.id);
-        const indexB = order.indexOf(b.id);
-        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-        if (indexA !== -1) return -1;
-        if (indexB !== -1) return 1;
-        return a.id.localeCompare(b.id);
-      });
-      setCases(casesData);
-
-      const configDoc = await getDoc(doc(db, 'settings', 'system_config'));
-      if (configDoc.exists()) {
-        setActiveCaseId(configDoc.data().activeCaseId);
-        if (configDoc.data().activePeriod) {
-          setActivePeriod(configDoc.data().activePeriod);
-        }
-      }
-
       const bugReportsSnapshot = await getDocs(collection(db, 'bug_reports'));
       const bugsData: BugReport[] = [];
       bugReportsSnapshot.forEach((doc) => {
@@ -311,9 +419,7 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
       bugsData.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setBugReports(bugsData);
     } catch (err) {
-      console.error("Error fetching data", err);
-    } finally {
-      setLoading(false);
+      console.error("Error fetching logs and bugs", err);
     }
   };
 
@@ -477,6 +583,61 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
     setIsGeneratingCase(false);
   };
 
+  const seedDefaultExamsToCloud = async () => {
+    if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการอัปโหลด/Sync ข้อสอบชุดมาตรฐาน (Pretest, Posttest, KFP, KFQ) ขึ้นสู่ระบบ Firestore?')) return;
+    setLoading(true);
+    try {
+      const batch = writeBatch(db);
+
+      // Seed Pretest Batch 1
+      for (const q of BATCH1_QUESTIONS) {
+        const ref = doc(db, 'exams', `pretest_batch1_${q.id}`);
+        batch.set(ref, { ...q, category: 'pretest_batch1', updatedAt: new Date().toISOString() });
+      }
+
+      // Seed Pretest Batch 2
+      for (const q of BATCH2_QUESTIONS) {
+        const ref = doc(db, 'exams', `pretest_batch2_${q.id}`);
+        batch.set(ref, { ...q, category: 'pretest_batch2', updatedAt: new Date().toISOString() });
+      }
+
+      // Seed Posttest
+      for (const q of BATCH1_QUESTIONS) {
+        const ref = doc(db, 'exams', `posttest_${q.id}`);
+        batch.set(ref, { ...q, category: 'posttest', updatedAt: new Date().toISOString() });
+      }
+
+      // Seed KFP
+      for (const q of DEFAULT_KFP_QUESTIONS) {
+        const ref = doc(db, 'exams', `kfp_${q.id}`);
+        batch.set(ref, { ...q, category: 'kfp', updatedAt: new Date().toISOString() });
+      }
+
+      // Seed KFQ
+      for (const q of DEFAULT_KFQ_QUESTIONS) {
+        const ref = doc(db, 'exams', `kfq_${q.id}`);
+        batch.set(ref, { ...q, category: 'kfq', updatedAt: new Date().toISOString() });
+      }
+
+      await batch.commit();
+      alert('อัปโหลดชุดข้อสอบตั้งต้นขึ้น Cloud เรียบร้อยแล้ว!');
+    } catch (err: any) {
+      alert('เกิดข้อผิดพลาดในการอัปโหลดข้อสอบ: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteExamItem = async (docId: string, qId: string) => {
+    if (!confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบข้อสอบ ID: ${qId}?`)) return;
+    try {
+      await deleteDoc(doc(db, 'exams', docId));
+      alert('ลบข้อสอบเรียบร้อยแล้ว');
+    } catch (err: any) {
+      alert('เกิดข้อผิดพลาดในการลบข้อสอบ: ' + err.message);
+    }
+  };
+
   const setActiveCase = async (id: string) => {
     await setDoc(doc(db, 'settings', 'system_config'), { activeCaseId: id }, { merge: true });
     setActiveCaseId(id);
@@ -549,6 +710,19 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
           </li>
           <li>
             <button 
+              onClick={() => setActiveTab('exam_bank')}
+              className={`w-full flex items-center gap-4 py-3 rounded-r-full mr-4 px-6 transition-all ${
+                activeTab === 'exam_bank' 
+                  ? 'bg-primary-container text-on-primary-container font-bold hover:bg-primary-fixed' 
+                  : 'text-on-surface-variant hover:bg-surface-variant font-label-md'
+              }`}
+            >
+              <span className="material-symbols-rounded">quiz</span>
+              <span className="font-label-md whitespace-nowrap">คลังข้อสอบ (Exam Bank)</span>
+            </button>
+          </li>
+          <li>
+            <button 
               onClick={() => setActiveTab('bug_reports')}
               className={`w-full flex items-center gap-4 py-3 rounded-r-full mr-4 px-6 transition-all ${
                 activeTab === 'bug_reports' 
@@ -579,7 +753,7 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
         <header className="w-full top-0 border-b border-outline-variant flex justify-between items-center px-4 md:px-10 py-4 z-40 bg-surface-container-lowest">
           <div className="flex items-center gap-3">
             <div className="h-14 md:h-20 overflow-hidden flex items-center justify-center">
-              <img src={logoImg} alt="Bridge AI Logo" className="h-40 md:h-52 w-auto object-contain" />
+              <img src={logoImg} alt="V-SCENE Logo" className="h-40 md:h-52 w-auto object-contain" />
             </div>
             <h1 className="font-headline-md text-xl font-bold text-primary sm:hidden ml-2">{t('teacher.portal')}</h1>
           </div>
@@ -612,8 +786,21 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
         <main className="flex-1 overflow-y-auto p-4 md:p-10 pb-24 md:pb-10 bg-surface w-full max-w-[1280px] mx-auto">
           <div className="flex justify-between items-end mb-8">
             <div>
-              <h2 className="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface mb-1">{t('teacher.dashboard_title')}</h2>
-              <p className="font-body-md text-on-surface-variant">{t('teacher.dashboard_subtitle')}</p>
+              <div className="flex items-center gap-3 mb-1">
+                <h2 className="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface">{t('teacher.dashboard_title')}</h2>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 text-xs rounded-full font-bold shadow-xs">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+                  <span>Real-time Multi-User Sync Active</span>
+                </span>
+              </div>
+              <p className="font-body-md text-on-surface-variant flex items-center gap-2">
+                <span>{t('teacher.dashboard_subtitle')}</span>
+                {Object.keys(activeEditors).length > 0 && (
+                  <span className="text-xs text-amber-700 font-bold bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-full animate-pulse">
+                    ✍️ มีสมาชิกกำลังแก้ไขเคสอยู่ {Object.keys(activeEditors).length} รายการ
+                  </span>
+                )}
+              </p>
             </div>
             <div className="flex gap-3">
               <button 
@@ -843,7 +1030,13 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {cases.filter(c => c.status === 'draft').map((c) => (
-                        <div key={c.id} className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 shadow-sm flex flex-col">
+                        <div key={c.id} className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 shadow-sm flex flex-col relative">
+                          {activeEditors[c.id || ''] && (
+                            <div className="mb-3 px-3 py-1 bg-amber-500/10 text-amber-700 border border-amber-500/20 text-xs rounded-xl font-bold flex items-center gap-1.5 animate-pulse">
+                              <span className="material-symbols-rounded text-[14px]">edit</span>
+                              <span>{activeEditors[c.id || ''].userName} กำลังแก้ไขอยู่นี้</span>
+                            </div>
+                          )}
                           <div className="flex justify-between items-start mb-4">
                             <h4 className="font-headline-md text-xl text-on-surface font-bold">{c.diseaseName}</h4>
                             <span className="bg-secondary-container text-on-secondary-container text-[10px] uppercase font-bold px-3 py-1 rounded-full">Draft</span>
@@ -877,7 +1070,13 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {cases.filter(c => c.status === 'deployed' || !c.status).map((c) => (
-                        <div key={c.id} className="bg-primary-container/10 border border-primary/30 rounded-2xl p-6 shadow-sm flex flex-col">
+                        <div key={c.id} className="bg-primary-container/10 border border-primary/30 rounded-2xl p-6 shadow-sm flex flex-col relative">
+                          {activeEditors[c.id || ''] && (
+                            <div className="mb-3 px-3 py-1 bg-amber-500/10 text-amber-700 border border-amber-500/20 text-xs rounded-xl font-bold flex items-center gap-1.5 animate-pulse">
+                              <span className="material-symbols-rounded text-[14px]">edit</span>
+                              <span>{activeEditors[c.id || ''].userName} กำลังแก้ไขอยู่นี้</span>
+                            </div>
+                          )}
                           <div className="flex justify-between items-start mb-4">
                             <h4 className="font-headline-md text-xl text-on-surface font-bold">{c.diseaseName}</h4>
                             <span className="bg-primary text-on-primary text-[10px] uppercase font-bold px-3 py-1 rounded-full flex items-center gap-1">
@@ -940,6 +1139,316 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'exam_bank' && (
+            <div className="space-y-6">
+              {/* Exam Bank Header */}
+              <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-900 border border-indigo-800/40 rounded-3xl p-6 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-headline-md text-2xl font-bold flex items-center gap-2 text-white">
+                    <span className="material-symbols-rounded text-sky-400 text-3xl">quiz</span>
+                    คลังและระบบแก้ไขข้อสอบรวม (Pre-test / Post-test / KFP / KFQ)
+                  </h3>
+                  <p className="text-sm text-sky-200/80 mt-1">
+                    ระบบแก้ไขข้อสอบร่วมกันแบบ Real-time ซิงก์ข้อมูลลง Firestore อัตโนมัติรองรับการทำงานทีมวิจัย (เขม, พิช, ฟา, โบนัส, อี้หง, เก้า)
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  {/* System 1: Psychometrics */}
+                  <button
+                    onClick={() => setIsMedicalAnalyticsOpen(true)}
+                    className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-xs shadow-lg shadow-blue-500/20 flex items-center gap-1.5 transition"
+                  >
+                    <span className="material-symbols-rounded text-base font-bold">analytics</span>
+                    Psychometrics (ระบบ 1)
+                  </button>
+
+                  {/* System 2: AI Assistant */}
+                  <button
+                    onClick={() => setIsAIAssistantOpen(true)}
+                    className="px-4 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold text-xs shadow-lg shadow-purple-500/20 flex items-center gap-1.5 transition"
+                  >
+                    <span className="material-symbols-rounded text-base font-bold">auto_awesome</span>
+                    AI Assistant (ระบบ 2)
+                  </button>
+
+                  {/* System 6: PDF / OMR Exporter */}
+                  <button
+                    onClick={() => setIsExamExporterOpen(true)}
+                    className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-xs shadow-lg shadow-indigo-500/20 flex items-center gap-1.5 transition"
+                  >
+                    <span className="material-symbols-rounded text-base font-bold">print</span>
+                    PDF & OMR (ระบบ 6)
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setSimInitialIndex(0);
+                      setIsSimModalOpen(true);
+                    }}
+                    className="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-xl font-bold text-xs shadow-lg shadow-amber-400/20 flex items-center gap-1.5 transition"
+                  >
+                    <span className="material-symbols-rounded text-base font-bold">visibility</span>
+                    Simulation
+                  </button>
+
+                  <button
+                    onClick={handleCleanAndRestoreExams}
+                    className="px-4 py-2.5 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/30 text-rose-200 rounded-xl font-bold text-xs flex items-center gap-1.5 transition"
+                    title="ล้างข้อมูลข้อสอบซ้ำซ้อนและกู้คืนชุดข้อสอบมาตรฐาน"
+                  >
+                    <span className="material-symbols-rounded text-sm">cleaning_services</span>
+                    ล้างกู้คืนข้อสอบ
+                  </button>
+
+                  <button
+                    onClick={handleSeedCurrentCategory}
+                    disabled={isSeedingExams}
+                    className="px-4 py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 text-sky-100 rounded-xl font-bold text-xs flex items-center gap-2 transition disabled:opacity-50"
+                  >
+                    <span className="material-symbols-rounded text-sm">cloud_upload</span>
+                    {isSeedingExams ? 'กำลัง Sync...' : 'Sync ตั้งต้น'}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setEditingExamItem(null);
+                      setIsExamModalOpen(true);
+                    }}
+                    className="px-5 py-2.5 bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-300 hover:to-blue-400 text-slate-950 rounded-xl font-bold text-sm shadow-lg shadow-sky-500/20 flex items-center gap-2 transition"
+                  >
+                    <span className="material-symbols-rounded text-sm font-extrabold">add</span>
+                    สร้างข้อสอบใหม่
+                  </button>
+                </div>
+              </div>
+
+              {/* Active Editors Live Banner */}
+              {Object.keys(activeExamEditors).length > 0 && (
+                <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center gap-3 text-amber-800 text-sm font-semibold animate-pulse">
+                  <span className="material-symbols-rounded text-amber-600">record_voice_over</span>
+                  <div>
+                    <span>กำลังมีสมาชิกในทีมเข้าแก้ไขข้อสอบอยู่: </span>
+                    <span className="font-bold underline">
+                      {Object.values(activeExamEditors).map(e => `${e.userName} (ข้อสอบ ${e.questionId})`).join(', ')}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Filter & Category Controls */}
+              <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-4 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+                {/* Category Tabs */}
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { id: 'pretest_batch1', label: 'Pre-test (Batch 1)' },
+                    { id: 'pretest_batch2', label: 'Pre-test (Batch 2)' },
+                    { id: 'posttest', label: 'Post-test (Final)' },
+                    { id: 'kfp', label: 'KFP (Key Feature Problems)' },
+                    { id: 'kfq', label: 'KFQ (Key Feature Questions)' }
+                  ].map(cat => (
+                    <button
+                      key={cat.id}
+                      onClick={() => setExamCategory(cat.id as ExamCategory)}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+                        examCategory === cat.id
+                          ? 'bg-primary text-on-primary shadow-sm'
+                          : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container'
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Case Filter */}
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                  <span className="text-xs font-semibold text-on-surface-variant whitespace-nowrap">Filter Case:</span>
+                  <select
+                    value={examCaseFilter}
+                    onChange={(e: any) => setExamCaseFilter(e.target.value)}
+                    className="bg-surface border border-outline-variant rounded-xl px-3 py-1.5 text-xs font-medium focus:ring-2 focus:ring-primary outline-none"
+                  >
+                    <option value="all">ทั้งหมด (All Cases)</option>
+                    <option value="case_a">Case A (Neurocysticercosis)</option>
+                    <option value="case_b">Case B</option>
+                    <option value="case_c">Case C</option>
+                    <option value="general">General</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Questions List */}
+              <div className="space-y-4">
+                {(() => {
+                  let categoryExams = getResolvedExams(dbExams, examCategory);
+
+                  if (examCaseFilter !== 'all') {
+                    categoryExams = categoryExams.filter(e => e.caseKey === examCaseFilter);
+                  }
+
+                  if (categoryExams.length === 0) {
+                    return (
+                      <div className="bg-surface-container-lowest border border-outline-variant border-dashed rounded-2xl p-12 text-center">
+                        <span className="material-symbols-rounded text-4xl text-on-surface-variant mb-2">find_in_page</span>
+                        <p className="font-bold text-on-surface text-base">ไม่พบข้อสอบในหมวดนี้</p>
+                        <p className="text-xs text-on-surface-variant mt-1">กดปุ่ม "สร้างข้อสอบใหม่" หรือ "Sync / Seed ข้อสอบตั้งต้น" ด้านบนเพื่อเริ่มอัปโหลดข้อสอบ</p>
+                      </div>
+                    );
+                  }
+
+                  return categoryExams.map((q, idx) => {
+                    const docKey = `${examCategory}_${q.id}`;
+                    const activeEditor = activeExamEditors[docKey];
+
+                    return (
+                      <div
+                        key={q.docId || q.id || idx}
+                        className={`bg-surface-container-lowest border rounded-2xl p-6 shadow-sm relative transition-all ${
+                          activeEditor ? 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/10' : 'border-outline-variant hover:border-primary/50'
+                        }`}
+                      >
+                        {activeEditor && (
+                          <div className="absolute top-4 right-4 px-3 py-1 bg-amber-500 text-white rounded-full text-xs font-bold shadow-md flex items-center gap-1.5 animate-bounce">
+                            <span className="material-symbols-rounded text-sm">edit</span>
+                            <span>{activeEditor.userName} กำลังแก้ไขข้อนี้อยู่</span>
+                          </div>
+                        )}
+
+                        <div className="flex items-start justify-between gap-4 mb-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-mono text-xs font-bold px-2.5 py-1 bg-primary-container text-on-primary-container rounded-lg">
+                              #{q.id}
+                            </span>
+                            <span className="text-xs font-bold px-2.5 py-1 bg-surface-variant text-on-surface-variant rounded-lg uppercase">
+                              {q.caseKey || 'General'}
+                            </span>
+                            {q.isCustomized ? (
+                              <span className="text-[11px] font-bold px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-full flex items-center gap-1 shadow-2xs">
+                                <span className="material-symbols-rounded text-xs">auto_awesome</span>
+                                เวอร์ชั่นล่าสุด (Updated Live)
+                              </span>
+                            ) : (
+                              <span className="text-[11px] font-medium px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full">
+                                ชุดมาตรฐาน
+                              </span>
+                            )}
+                            {q.title && <span className="font-bold text-sm text-on-surface">{q.title}</span>}
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => {
+                                setSimInitialIndex(idx);
+                                setIsSimModalOpen(true);
+                              }}
+                              className="px-3 py-1.5 bg-amber-500/10 text-amber-800 hover:bg-amber-500/20 border border-amber-500/20 rounded-xl text-xs font-bold transition flex items-center gap-1"
+                              title="ทดลองสอบข้อนี้ในมุมมองนักเรียน"
+                            >
+                              <span className="material-symbols-rounded text-sm">visibility</span>
+                              Simulation
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditingExamItem(q);
+                                setIsExamModalOpen(true);
+                              }}
+                              className="px-3.5 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 rounded-xl text-xs font-bold transition flex items-center gap-1"
+                            >
+                              <span className="material-symbols-rounded text-sm">edit</span>
+                              แก้ไข (Edit)
+                            </button>
+                            {q.isCustomized && (
+                              <button
+                                onClick={async () => {
+                                  if (!confirm(`คุณต้องการคืนค่าข้อสอบ #${q.id} กลับเป็นโจทย์มาตรฐานตั้งต้นใช่หรือไม่?`)) return;
+                                  try {
+                                    await resetQuestionToOriginal(examCategory, q.id);
+                                    alert('คืนค่าข้อสอบเป็นโจทย์มาตรฐานเรียบร้อยแล้ว');
+                                  } catch (err) {
+                                    console.error(err);
+                                  }
+                                }}
+                                className="px-3.5 py-1.5 bg-slate-200 text-slate-700 hover:bg-slate-300 rounded-xl text-xs font-bold transition flex items-center gap-1"
+                                title="คืนค่าข้อสอบเป็นโจทย์มาตรฐาน"
+                              >
+                                <span className="material-symbols-rounded text-sm">restart_alt</span>
+                                คืนค่าเดิม
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDeleteExamItem(q.docId || `${examCategory}_${q.id}`, q.id)}
+                              className="px-3.5 py-1.5 bg-error/10 text-error hover:bg-error/20 rounded-xl text-xs font-bold transition flex items-center gap-1"
+                            >
+                              <span className="material-symbols-rounded text-sm">delete</span>
+                              ลบ (Delete)
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Standard Choice Question View (Pretest / Posttest / KFP / KFQ) */}
+                        <div className="space-y-3">
+                          <p className="font-bold text-base text-on-surface">
+                            {q.question || q.questionPrompt || q.vignette || 'ไม่มีโจทย์'}
+                          </p>
+
+                          {/* Display Teacher Uploaded Image if available */}
+                          {(q.imageUrl || q.image) && (
+                            <div className="my-3 flex items-center gap-3 p-2.5 bg-purple-50/50 border border-purple-100 rounded-xl">
+                              <img src={q.imageUrl || q.image} alt="Exam Figure" className="h-28 w-auto object-contain rounded-lg border border-slate-200 shadow-2xs" />
+                              <div className="text-xs text-slate-600">
+                                <span className="font-bold text-purple-900 block flex items-center gap-1">
+                                  <span className="material-symbols-rounded text-sm text-purple-700">image</span>
+                                  รูปภาพประกอบโจทย์ข้อสอบ
+                                </span>
+                                <span className="text-[11px] text-slate-500">ไฟล์รูปภาพจริงที่อาจารย์อัปโหลดขึ้นระบบ</span>
+                              </div>
+                            </div>
+                          )}
+
+                          {q.options && Array.isArray(q.options) && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pl-2">
+                              {q.options.map((opt: string, optIdx: number) => (
+                                <div
+                                  key={optIdx}
+                                  className={`p-2.5 rounded-xl text-xs border font-medium ${
+                                    q.correctAnswerIndex === optIdx
+                                      ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-800 font-bold'
+                                      : 'bg-surface-container-low border-outline-variant text-on-surface-variant'
+                                  }`}
+                                >
+                                  {q.correctAnswerIndex === optIdx ? '✓ ' : ''}{opt}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {q.explanation && (
+                            <p className="text-xs text-slate-500 italic mt-1">คำอธิบายเฉลย: {q.explanation}</p>
+                          )}
+
+                          {/* Audit Trail: Who edited & when */}
+                          <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-500 font-medium">
+                            <div className="flex items-center gap-1.5">
+                              <span className="material-symbols-rounded text-sm text-slate-400">person_edit</span>
+                              <span>แก้ไขล่าสุดโดย: <strong className="text-slate-800">{q.updatedBy || 'ผู้ดูแลระบบ V-SCENE'}</strong></span>
+                            </div>
+                            {q.updatedAt && (
+                              <div className="flex items-center gap-1 text-slate-400 text-[11px]">
+                                <span className="material-symbols-rounded text-xs">schedule</span>
+                                <span>{new Date(q.updatedAt).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
               </div>
             </div>
           )}
@@ -1342,6 +1851,54 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
         onClose={() => setIsAnalyticsModalOpen(false)} 
         logs={logs} 
         cases={cases}
+      />
+      <ExamEditorModal 
+        isOpen={isExamModalOpen} 
+        onClose={() => {
+          setIsExamModalOpen(false);
+          setEditingExamItem(null);
+        }} 
+        category={examCategory} 
+        initialQuestion={editingExamItem}
+        onSaveSuccess={() => {
+          setIsExamModalOpen(false);
+          setEditingExamItem(null);
+        }}
+      />
+
+      <ExamSimulationModal
+        isOpen={isSimModalOpen}
+        onClose={() => setIsSimModalOpen(false)}
+        category={examCategory}
+        questions={(() => {
+          let categoryExams = getResolvedExams(dbExams, examCategory);
+          if (examCaseFilter !== 'all') {
+            categoryExams = categoryExams.filter(e => e.caseKey === examCaseFilter);
+          }
+          return categoryExams;
+        })()}
+        initialIndex={simInitialIndex}
+      />
+
+      {/* System 1: Medical Psychometrics Analytics */}
+      <MedicalAnalyticsModal
+        isOpen={isMedicalAnalyticsOpen}
+        onClose={() => setIsMedicalAnalyticsOpen(false)}
+        examTitle="V-SCENE Medical Licensing Exam Analytics"
+      />
+
+      {/* System 2: AI Question Assistant */}
+      <AIQuestionAssistantModal
+        isOpen={isAIAssistantOpen}
+        onClose={() => setIsAIAssistantOpen(false)}
+      />
+
+      {/* System 6: PDF / OMR Exporter */}
+      <ExamExporterModal
+        isOpen={isExamExporterOpen}
+        onClose={() => setIsExamExporterOpen(false)}
+        examTitle="V-SCENE Clinical Competency Examination"
+        questions={dbExams}
       />
 
     </div>

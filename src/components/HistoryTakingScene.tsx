@@ -632,8 +632,8 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
   }
 
   return (
-    <div className="bg-background text-on-background min-h-screen flex flex-col font-body-md antialiased selection:bg-primary-container selection:text-on-primary-container">
-      <div className="bg-primary text-on-primary text-center py-2 px-4 font-label-sm tracking-wide flex items-center justify-center gap-2 relative z-20">
+    <div className="bg-background text-on-background h-screen h-[100dvh] overflow-hidden flex flex-col font-body-md antialiased selection:bg-primary-container selection:text-on-primary-container">
+      <div className="bg-primary text-on-primary text-center h-9 px-4 font-label-sm tracking-wide flex items-center justify-center gap-2 relative z-20 shrink-0">
         <span className="material-symbols-rounded text-[16px] flex-shrink-0">shield</span>
         <span>Formative Sandbox: This activity is for diagnostic learning and skills development. Results are confidential.</span>
       </div>

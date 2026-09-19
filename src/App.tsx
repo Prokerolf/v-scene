@@ -5,6 +5,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import Auth from './components/Auth';
 import TeacherDashboard from './components/TeacherDashboard';
 import StudentApp from './StudentApp';
+import MobileBlocker from './components/MobileBlocker';
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -13,17 +14,34 @@ function App() {
   const [stage, setStage] = useState<'app'>('app');
 
   useEffect(() => {
+    let isSubscribed = true;
+
+    // Safety timeout: Never hang on spinner for more than 1.5 seconds
+    const safetyTimer = setTimeout(() => {
+      if (isSubscribed) {
+        setLoading(false);
+      }
+    }, 1500);
+
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       try {
+        if (!isSubscribed) return;
         setUser(currentUser);
         if (currentUser) {
+          // Check if there is a dev role preserved in localStorage across page refreshes
+          const savedDevRole = localStorage.getItem('vscene_dev_role') as 'student' | 'teacher' | 'admin' | null;
+
           try {
             const docRef = doc(db, 'users', currentUser.uid);
-            const docSnap = await getDoc(docRef);
-            if (docSnap.exists()) {
-              const data = docSnap.data();
-              setStage('app');
+            const docSnap = await Promise.race([
+              getDoc(docRef),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('Firestore timeout')), 1200))
+            ]) as any;
 
+            if (savedDevRole === 'student' || savedDevRole === 'teacher' || savedDevRole === 'admin') {
+              setRole(savedDevRole);
+            } else if (docSnap && docSnap.exists && docSnap.exists()) {
+              const data = docSnap.data();
               if (data.role === 'teacher' || data.role === 'admin') {
                 setRole(data.role as any);
               } else {
@@ -31,24 +49,40 @@ function App() {
               }
             } else {
               setRole('student');
-              setStage('app');
             }
+            setStage('app');
           } catch (e) {
-            console.warn("Could not fetch user data", e);
-            setRole('student');
+            console.warn("Could not fetch user data in time, defaulting to saved/student role", e);
+            setRole(savedDevRole || 'student');
             setStage('app');
           }
         }
       } catch (error) {
         console.error("Unexpected error in auth state:", error);
       } finally {
-        setLoading(false);
+        if (isSubscribed) {
+          clearTimeout(safetyTimer);
+          setLoading(false);
+        }
       }
     });
-    return () => unsubscribe();
+
+    return () => {
+      isSubscribed = false;
+      clearTimeout(safetyTimer);
+      unsubscribe();
+    };
   }, []);
 
+  const handleSwitchToStudent = () => {
+    localStorage.setItem('vscene_dev_role', 'student');
+    setRole('student');
+  };
 
+  const handleSwitchToTeacher = () => {
+    localStorage.setItem('vscene_dev_role', 'teacher');
+    setRole('teacher');
+  };
 
   if (loading) {
     return (
@@ -58,21 +92,19 @@ function App() {
     );
   }
 
-  if (!user) {
-    return <Auth />;
-  }
+  const renderAppContent = () => {
+    if (!user) {
+      return <Auth />;
+    }
 
+    if (role === 'admin' || role === 'teacher') {
+      return <TeacherDashboard onSwitchToStudent={handleSwitchToStudent} />;
+    }
 
+    return <StudentApp user={user} onSwitchToTeacher={handleSwitchToTeacher} />;
+  };
 
-  if (role === 'admin') {
-    return <TeacherDashboard onSwitchToStudent={() => setRole('student')} />;
-  }
-
-  if (role === 'teacher') {
-    return <TeacherDashboard />;
-  }
-
-  return <StudentApp user={user} />;
+  return <MobileBlocker>{renderAppContent()}</MobileBlocker>;
 }
 
 export default App;

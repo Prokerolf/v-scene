@@ -21,9 +21,10 @@ import { useTranslation } from 'react-i18next';
 
 interface StudentAppProps {
   user: User;
+  onSwitchToTeacher?: () => void;
 }
 
-export default function StudentApp({ user }: StudentAppProps) {
+export default function StudentApp({ user, onSwitchToTeacher }: StudentAppProps) {
   const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [stage, setStage] = useState<'gateway' | 'dashboard' | 'pretest' | 'history' | 'lab' | 'lab_results' | 'diagnostic' | 'treatment' | 'posttest' | 'solution' | 'finalposttest'>('gateway');
@@ -87,9 +88,19 @@ export default function StudentApp({ user }: StudentAppProps) {
 
   // Load session & fetch cases on mount
   useEffect(() => {
+    let isSubscribed = true;
+
+    // Safety timeout: Ensure loading finishes within 1.5s even if Firestore is slow
+    const safetyTimer = setTimeout(() => {
+      if (isSubscribed) {
+        setLoading(false);
+      }
+    }, 1500);
+
     const initializeStudentData = async () => {
       setLoading(true);
       try {
+        if (!isSubscribed) return;
         // 1. Load session from localStorage
         const localSession = localStorage.getItem(`sme_cbl_session_${user.uid}`);
         if (localSession) {
@@ -113,7 +124,11 @@ export default function StudentApp({ user }: StudentAppProps) {
               if (data.chatHistory) setChatHistory(data.chatHistory);
               if (data.timeLeft !== undefined) setTimeLeft(data.timeLeft);
               if (data.diagnosticInput !== undefined) setDiagnosticInput(data.diagnosticInput);
-              if (data.stage && data.stage !== 'teacher') {
+              
+              const devStage = localStorage.getItem('vscene_dev_stage');
+              if (devStage && ['gateway', 'dashboard', 'pretest', 'history', 'lab', 'lab_results', 'diagnostic', 'treatment', 'posttest', 'solution', 'finalposttest'].includes(devStage)) {
+                setStage(devStage as any);
+              } else if (data.stage && data.stage !== 'teacher') {
                 setStage(data.stage === 'posttest' ? 'solution' : data.stage);
               } else {
                 setStage('gateway');
@@ -121,28 +136,36 @@ export default function StudentApp({ user }: StudentAppProps) {
             }
           } catch (e) {
             console.error("Error parsing session", e);
-            setStage('gateway');
+            const devStage = localStorage.getItem('vscene_dev_stage');
+            setStage((devStage as any) || 'gateway');
           }
         } else {
-          setStage('gateway');
+          const devStage = localStorage.getItem('vscene_dev_stage');
+          setStage((devStage as any) || 'gateway');
         }
 
-        // 2. Fetch deployed cases
+        // 2. Fetch deployed cases with timeout
         try {
           const casesQuery = query(collection(db, 'cases'));
-          const casesSnap = await getDocs(casesQuery);
+          const casesSnap = await Promise.race([
+            getDocs(casesQuery),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Cases fetch timeout')), 1200))
+          ]) as any;
+
           const customCases: any[] = [];
-          casesSnap.forEach(doc => {
-            const data = doc.data();
-            if (data.status === 'deployed' || !data.status) {
-              const localMatch = CLINICAL_CASES.find(c => c.id === doc.id);
-              if (localMatch) {
-                customCases.push({ ...localMatch, status: 'deployed' });
-              } else {
-                customCases.push({ id: doc.id, ...data });
+          if (casesSnap && casesSnap.forEach) {
+            casesSnap.forEach((doc: any) => {
+              const data = doc.data();
+              if (data.status === 'deployed' || !data.status) {
+                const localMatch = CLINICAL_CASES.find(c => c.id === doc.id);
+                if (localMatch) {
+                  customCases.push({ ...localMatch, status: 'deployed' });
+                } else {
+                  customCases.push({ id: doc.id, ...data });
+                }
               }
-            }
-          });
+            });
+          }
           
           for (const localCase of CLINICAL_CASES) {
             if (!customCases.some(c => c.id === localCase.id)) {
@@ -150,18 +173,27 @@ export default function StudentApp({ user }: StudentAppProps) {
             }
           }
           
-          setAvailableCases(customCases);
+          if (isSubscribed) setAvailableCases(customCases);
         } catch (e) {
-          console.warn("Could not fetch custom cases", e);
+          console.warn("Could not fetch custom cases, using local CLINICAL_CASES", e);
+          if (isSubscribed) setAvailableCases(CLINICAL_CASES);
         }
       } catch (err) {
         console.error(err);
       } finally {
-        setLoading(false);
+        if (isSubscribed) {
+          clearTimeout(safetyTimer);
+          setLoading(false);
+        }
       }
     };
 
     initializeStudentData();
+
+    return () => {
+      isSubscribed = false;
+      clearTimeout(safetyTimer);
+    };
   }, [user.uid]);
 
   // Auto-save effect
@@ -191,6 +223,9 @@ export default function StudentApp({ user }: StudentAppProps) {
           updatedAt: new Date().toISOString()
         };
         localStorage.setItem(`sme_cbl_session_${user.uid}`, JSON.stringify(sessionData));
+        if (stage) {
+          localStorage.setItem('vscene_dev_stage', stage);
+        }
         
         const sessionRef = doc(db, 'users', user.uid);
         setDoc(sessionRef, sessionData, { merge: true }).catch(e => console.error("Firestore save error:", e));
@@ -277,17 +312,24 @@ export default function StudentApp({ user }: StudentAppProps) {
         setActiveCase(CLINICAL_CASES[0]);
     }
     switch (stage) {
-      case 'gateway': setStage('dashboard'); break;
+      case 'gateway': {
+        // Save session to localStorage so dashboard loads properly
+        const localSession = localStorage.getItem(`sme_cbl_session_${user.uid}`);
+        const parsed = localSession ? JSON.parse(localSession) : {};
+        localStorage.setItem(`sme_cbl_session_${user.uid}`, JSON.stringify({ ...parsed, stage: 'dashboard', session_version: 'v5_no_somsri' }));
+        setStage('dashboard'); 
+        break;
+      }
       case 'dashboard': 
         if (!activeCase) setActiveCase(CLINICAL_CASES[0]);
-        setStage('pretest'); 
+        setStage('history'); 
         break;
-      case 'pretest': setStage('history'); break;
       case 'history': setStage('lab'); break;
       case 'lab': setStage('diagnostic'); break;
       case 'diagnostic': setStage('treatment'); break;
       case 'treatment': setStage('solution'); break;
       case 'solution': setStage('dashboard'); break;
+      case 'finalposttest': setStage('dashboard'); break;
       default: break;
     }
   };
@@ -334,6 +376,14 @@ export default function StudentApp({ user }: StudentAppProps) {
       )}
 
       <div className="fixed bottom-4 left-4 z-[999999] flex flex-col gap-2 items-start">
+        {onSwitchToTeacher && (
+          <button 
+            onClick={onSwitchToTeacher}
+            className="px-4 py-2 bg-purple-700 text-white rounded-full shadow-lg font-bold text-sm hover:bg-purple-600 hover:scale-105 transition-transform flex items-center gap-2 border border-purple-400/30"
+          >
+            <span className="material-symbols-rounded text-[18px]">admin_panel_settings</span> Switch to Teacher View
+          </button>
+        )}
         <button 
           onClick={handleSkipForDev}
           className="px-4 py-2 bg-yellow-500 text-black rounded-full shadow-lg font-bold text-sm hover:bg-yellow-400 hover:scale-105 transition-transform flex items-center gap-2"
@@ -360,6 +410,7 @@ export default function StudentApp({ user }: StudentAppProps) {
         <GatewayPreTest 
           onPass={() => setStage('dashboard')} 
           onLogout={() => signOut(auth)} 
+          onSwitchToTeacher={onSwitchToTeacher}
           answers={gatewayAnswers}
           setAnswers={setGatewayAnswers}
           currentIndex={gatewayIndex}
@@ -367,7 +418,13 @@ export default function StudentApp({ user }: StudentAppProps) {
         />
       )}
 
-      {stage === 'dashboard' && <Dashboard onStartCase={startCase} onStartPostTest={() => setStage('finalposttest')} />}
+      {stage === 'dashboard' && (
+        <Dashboard 
+          onStartCase={startCase} 
+          onStartPreTest={() => setStage('gateway')}
+          onStartPostTest={() => setStage('finalposttest')} 
+        />
+      )}
       
       {stage === 'pretest' && (
         <>
@@ -470,6 +527,7 @@ export default function StudentApp({ user }: StudentAppProps) {
             <DiagnosticSynthesisScene
               activeCase={activeCase}
               addLogAction={addLogAction}
+              submittedDDx={submittedDDx}
               onFinish={async (finalDx, reason) => {
                 setFinalDiagnosis(finalDx);
                 setDiagnosisReason(reason);
@@ -614,6 +672,7 @@ export default function StudentApp({ user }: StudentAppProps) {
         <FinalPostTest 
           onComplete={() => setStage('dashboard')}
           onLogout={() => signOut(auth)}
+          onSwitchToTeacher={onSwitchToTeacher}
         />
       )}
     </div>

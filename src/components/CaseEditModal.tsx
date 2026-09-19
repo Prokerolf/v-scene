@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { X, Image as ImageIcon, Save, CheckCircle, Plus, Trash2, Check } from 'lucide-react';
-import { doc, updateDoc, setDoc } from 'firebase/firestore';
+import React, { useState, useEffect } from 'react';
+import { X, Image as ImageIcon, Save, CheckCircle, Plus, Trash2, Check, Users } from 'lucide-react';
+import { doc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../lib/firebase';
+import { db, storage, auth } from '../lib/firebase';
 import { labOptions } from './LabOrderScene';
 import { drugOptions } from './TreatmentScene';
 
@@ -76,12 +76,31 @@ export const CaseEditModal = ({ isOpen, onClose, caseData, onSave }: { isOpen: b
   const [isUploading, setIsUploading] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('general');
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen && caseData) {
       setEditingCase(caseData);
       setActiveTab('general');
     }
   }, [isOpen, caseData]);
+
+  // Register real-time active editing presence in Firestore
+  useEffect(() => {
+    if (!isOpen || !editingCase?.id || !auth.currentUser) return;
+    const editorRef = doc(db, 'active_editors', editingCase.id);
+    const editorName = auth.currentUser.displayName || auth.currentUser.email || 'Team Member';
+    
+    setDoc(editorRef, {
+      userId: auth.currentUser.uid,
+      userName: editorName,
+      caseId: editingCase.id,
+      diseaseName: editingCase.diseaseName || '',
+      updatedAt: new Date().toISOString()
+    }, { merge: true }).catch(console.error);
+
+    return () => {
+      deleteDoc(editorRef).catch(console.error);
+    };
+  }, [isOpen, editingCase?.id]);
 
   if (!isOpen || !editingCase) return null;
 
