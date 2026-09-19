@@ -155,3 +155,29 @@ export async function fetchAndMergeExamsForCategory(category: ExamCategory): Pro
     return getResolvedExams([], category);
   }
 }
+
+/**
+ * Sanitizes questions for student view by removing correctAnswerIndex and explanations
+ * so answer keys can NEVER be inspected or scraped via DevTools / F12 / JS Memory.
+ */
+export function sanitizeQuestionsForStudent(questions: any[]): any[] {
+  return (questions || []).map(q => {
+    const { correctAnswerIndex, explanation, answerKey, ...sanitized } = q;
+    return sanitized;
+  });
+}
+
+/**
+ * Securely evaluates student submission against original master questions.
+ */
+export function gradeStudentSubmission(studentAnswers: number[], masterQuestions: any[]): number {
+  let score = 0;
+  (studentAnswers || []).forEach((ans, idx) => {
+    const masterQ = masterQuestions[idx];
+    if (masterQ && masterQ.correctAnswerIndex !== undefined && ans === masterQ.correctAnswerIndex) {
+      score++;
+    }
+  });
+  return score;
+}
+

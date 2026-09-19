@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BATCH1_QUESTIONS, BATCH2_QUESTIONS } from '../data/exams';
-import { fetchAndMergeExamsForCategory } from '../lib/examUtils';
+import { fetchAndMergeExamsForCategory, sanitizeQuestionsForStudent } from '../lib/examUtils';
 import { LogOut } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 import { db, auth } from '../lib/firebase';
@@ -18,7 +18,8 @@ interface GatewayPreTestProps {
 }
 
 const GatewayPreTest = ({ onPass, onLogout, answers, setAnswers, currentIndex, setCurrentIndex, onSwitchToTeacher }: GatewayPreTestProps) => {
-  const [questions, setQuestions] = useState<any[]>(BATCH1_QUESTIONS);
+  const [masterQuestions, setMasterQuestions] = useState<any[]>(BATCH1_QUESTIONS);
+  const [questions, setQuestions] = useState<any[]>(() => sanitizeQuestionsForStudent(BATCH1_QUESTIONS));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isWaiting, setIsWaiting] = useState(false);
   const [allocatedGroup, setAllocatedGroup] = useState<string | null>(null);
@@ -38,6 +39,29 @@ const GatewayPreTest = ({ onPass, onLogout, answers, setAnswers, currentIndex, s
   };
 
   useEffect(() => {
+    const blockInspect = (e: KeyboardEvent) => {
+      if (
+        e.key === 'F12' ||
+        (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) ||
+        (e.metaKey && e.altKey && (e.key === 'I' || e.key === 'J' || e.key === 'U'))
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    const blockContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+
+    window.addEventListener('keydown', blockInspect);
+    window.addEventListener('contextmenu', blockContextMenu);
+    return () => {
+      window.removeEventListener('keydown', blockInspect);
+      window.removeEventListener('contextmenu', blockContextMenu);
+    };
+  }, []);
+
+  useEffect(() => {
     const fetchConfig = async () => {
       try {
         const configDoc = await getDoc(doc(db, 'settings', 'system_config'));
@@ -46,7 +70,8 @@ const GatewayPreTest = ({ onPass, onLogout, answers, setAnswers, currentIndex, s
 
         const targetCat = period === 2 ? 'pretest_batch2' : 'pretest_batch1';
         const mergedQuestions = await fetchAndMergeExamsForCategory(targetCat);
-        setQuestions(mergedQuestions);
+        setMasterQuestions(mergedQuestions);
+        setQuestions(sanitizeQuestionsForStudent(mergedQuestions));
 
         // Restore currentIndex & answers scoped to period
         const savedIdx = localStorage.getItem(`vscene_gateway_p${period}_index`);
@@ -148,8 +173,8 @@ const GatewayPreTest = ({ onPass, onLogout, answers, setAnswers, currentIndex, s
     
     answers.forEach((ans, index) => {
       if (index >= 30) return;
-      const q = questions[index];
-      if (ans === q.correctAnswerIndex) {
+      const q = masterQuestions[index] || questions[index];
+      if (q && q.correctAnswerIndex !== undefined && ans === q.correctAnswerIndex) {
         totalScore++;
       }
     });

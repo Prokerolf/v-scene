@@ -4,6 +4,7 @@ import logoImg from '../assets/logo.png';
 import { db, auth } from '../lib/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { QuestionHighlighter } from './QuestionHighlighter';
+import { sanitizeQuestionsForStudent } from '../lib/examUtils';
 
 interface FinalPostTestProps {
   onComplete: () => void;
@@ -12,6 +13,7 @@ interface FinalPostTestProps {
 }
 
 const FinalPostTest = ({ onComplete, onLogout, onSwitchToTeacher }: FinalPostTestProps) => {
+  const [masterQuestions, setMasterQuestions] = useState<any[]>([]);
   const [questions, setQuestions] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [answers, setAnswers] = useState<number[]>([]);
@@ -24,6 +26,29 @@ const FinalPostTest = ({ onComplete, onLogout, onSwitchToTeacher }: FinalPostTes
   const toggleStar = (qIdx: number) => {
     setStarredQuestions(prev => ({ ...prev, [qIdx]: !prev[qIdx] }));
   };
+
+  useEffect(() => {
+    const blockInspect = (e: KeyboardEvent) => {
+      if (
+        e.key === 'F12' ||
+        (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) ||
+        (e.metaKey && e.altKey && (e.key === 'I' || e.key === 'J' || e.key === 'U'))
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    const blockContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+
+    window.addEventListener('keydown', blockInspect);
+    window.addEventListener('contextmenu', blockContextMenu);
+    return () => {
+      window.removeEventListener('keydown', blockInspect);
+      window.removeEventListener('contextmenu', blockContextMenu);
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -87,7 +112,8 @@ const FinalPostTest = ({ onComplete, onLogout, onSwitchToTeacher }: FinalPostTes
           localStorage.setItem(savedQuestionsKey, JSON.stringify(finalQuestions));
         }
 
-        setQuestions(finalQuestions);
+        setMasterQuestions(finalQuestions);
+        setQuestions(sanitizeQuestionsForStudent(finalQuestions));
 
         const savedAnsStr = localStorage.getItem(`vscene_finalposttest_p${period}_answers`);
         if (savedAnsStr) {
@@ -111,17 +137,17 @@ const FinalPostTest = ({ onComplete, onLogout, onSwitchToTeacher }: FinalPostTes
     init();
   }, []);
 
-  const handleSelectOption = (optionIndex: number) => {
-    const newAnswers = [...answers];
-    newAnswers[currentIndex] = optionIndex;
-    setAnswers(newAnswers);
+  const handleSelectOption = (optIdx: number) => {
+    const updated = [...answers];
+    updated[currentIndex] = optIdx;
+    setAnswers(updated);
   };
 
   const handleNext = () => {
     if (currentIndex < questions.length - 1) {
       setCurrentIndex(prev => prev + 1);
     } else {
-      submitTest();
+      setCurrentIndex(questions.length);
     }
   };
 
@@ -137,7 +163,8 @@ const FinalPostTest = ({ onComplete, onLogout, onSwitchToTeacher }: FinalPostTes
     try {
       let finalScore = 0;
       answers.forEach((ans, index) => {
-        if (ans === questions[index].correctAnswerIndex) {
+        const q = masterQuestions[index] || questions[index];
+        if (q && q.correctAnswerIndex !== undefined && ans === q.correctAnswerIndex) {
           finalScore++;
         }
       });
