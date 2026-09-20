@@ -670,10 +670,10 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
 
       <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
         {/* Patient Profile Sidebar */}
-        <aside className="w-full md:w-72 lg:w-80 bg-surface-container-lowest border-b md:border-b-0 md:border-r border-outline-variant flex flex-row md:flex-col shadow-sm z-0 shrink-0 overflow-y-auto">
-          <div id="tour-avatar" className="w-24 md:w-36 lg:w-44 h-24 md:h-36 lg:h-44 my-2 md:my-4 mx-auto relative flex-shrink-0 rounded-2xl md:rounded-full border border-outline-variant overflow-hidden bg-surface-container-low flex items-center justify-center shadow-sm">
+        <aside className="w-full md:w-80 bg-surface-container-lowest border-b md:border-b-0 md:border-r border-outline-variant flex flex-row md:flex-col shadow-sm z-0 shrink-0 overflow-y-auto">
+          <div id="tour-avatar" className="w-32 md:w-full h-auto md:h-64 relative flex-shrink-0 border-r md:border-r-0 md:border-b border-outline-variant overflow-hidden bg-surface-container-low flex items-center justify-center">
             <PatientAvatar3D audioElement={currentAudio} isSpeakingFallback={isSpeakingFallback} patientCase={patientCase} />
-            <div className="absolute bottom-1 left-1/2 -translate-x-1/2 bg-surface-container-lowest/90 text-on-surface text-[10px] md:text-xs px-2.5 py-0.5 rounded-full shadow-sm border border-outline-variant hidden md:block whitespace-nowrap">
+            <div className="absolute bottom-2 left-2 md:bottom-4 md:left-4 bg-surface-container-lowest/90 text-on-surface font-label-sm px-3 py-1.5 rounded-full shadow-sm border border-outline-variant hidden md:block">
               AI Patient: {patientCase?.patientName}
             </div>
           </div>
@@ -781,7 +781,7 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
                 <button 
                   onClick={handleVoiceInput}
                   disabled={isProcessing || isMicStarting}
-                  className={`relative flex items-center justify-center w-14 h-14 md:w-16 md:h-16 rounded-full transition-all duration-300 shadow-md ${
+                  className={`relative flex items-center justify-center w-16 h-16 md:w-20 md:h-20 rounded-full transition-all duration-300 shadow-md ${
                     isMicStarting
                       ? 'bg-tertiary text-on-tertiary animate-pulse'
                       : isRecording 
@@ -797,7 +797,7 @@ const HistoryTakingScene = ({ activeCase, preTestScore, onFinish, onBack, addLog
                   {isMicStarting && (
                     <div className="absolute inset-0 rounded-full border-4 border-tertiary-container/50 animate-spin border-t-tertiary"></div>
                   )}
-                  <span key={isMicStarting ? 'start' : isRecording ? 'rec' : isProcessing ? 'proc' : 'idle'} className="material-symbols-rounded text-[26px] md:text-[28px]">{isMicStarting ? 'hourglass_empty' : isRecording ? 'mic' : isProcessing ? 'mic_off' : 'mic'}</span>
+                  <span key={isMicStarting ? 'start' : isRecording ? 'rec' : isProcessing ? 'proc' : 'idle'} className="material-symbols-rounded text-[32px]">{isMicStarting ? 'hourglass_empty' : isRecording ? 'mic' : isProcessing ? 'mic_off' : 'mic'}</span>
                 </button>
               </div>
 

@@ -752,8 +752,8 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
         {/* Top App Bar */}
         <header className="w-full top-0 border-b border-outline-variant flex justify-between items-center px-4 md:px-10 py-4 z-40 bg-surface-container-lowest">
           <div className="flex items-center gap-3">
-            <div className="h-10 md:h-12 flex items-center justify-center">
-              <img src={logoImg} alt="V-SCENE Logo" className="h-9 md:h-11 w-auto object-contain" />
+            <div className="h-14 md:h-20 overflow-hidden flex items-center justify-center">
+              <img src={logoImg} alt="V-SCENE Logo" className="h-40 md:h-52 w-auto object-contain" />
             </div>
             <h1 className="font-headline-md text-xl font-bold text-primary sm:hidden ml-2">{t('teacher.portal')}</h1>
           </div>
@@ -784,16 +784,16 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
 
         {/* Main Scrollable Canvas */}
         <main className="flex-1 overflow-y-auto p-4 md:p-10 pb-24 md:pb-10 bg-surface w-full max-w-[1280px] mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-6">
+          <div className="flex justify-between items-end mb-8">
             <div>
-              <div className="flex flex-wrap items-center gap-2 mb-1">
-                <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-on-surface">{t('teacher.dashboard_title')}</h2>
+              <div className="flex items-center gap-3 mb-1">
+                <h2 className="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface">{t('teacher.dashboard_title')}</h2>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 text-xs rounded-full font-bold shadow-xs">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
                   <span>Real-time Multi-User Sync Active</span>
                 </span>
               </div>
-              <p className="font-body-md text-sm text-on-surface-variant flex flex-wrap items-center gap-2">
+              <p className="font-body-md text-on-surface-variant flex items-center gap-2">
                 <span>{t('teacher.dashboard_subtitle')}</span>
                 {Object.keys(activeEditors).length > 0 && (
                   <span className="text-xs text-amber-700 font-bold bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-full animate-pulse">
@@ -802,16 +802,16 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
                 )}
               </p>
             </div>
-            <div className="flex flex-wrap gap-2.5 shrink-0">
+            <div className="flex gap-3">
               <button 
                 onClick={toggleActivePeriod}
-                className="hidden md:flex items-center gap-2 bg-secondary-container text-on-secondary-container px-4 py-1.5 rounded-full hover:bg-secondary-fixed transition-all text-xs md:text-sm font-semibold shadow-xs border border-outline-variant"
+                className="hidden md:flex items-center gap-2 bg-secondary-container text-on-secondary-container px-6 py-2.5 rounded-full hover:bg-secondary-fixed transition-all font-label-md shadow-sm border border-outline-variant"
               >
                 <span className="material-symbols-rounded text-[18px]">toggle_on</span> Current Phase: Period {activePeriod}
               </button>
               <button 
                 onClick={exportResearchDataCSV}
-                className="hidden md:flex items-center gap-2 bg-primary text-on-primary px-4 py-1.5 rounded-full hover:bg-primary-fixed-variant transition-all text-xs md:text-sm font-semibold shadow-xs"
+                className="hidden md:flex items-center gap-2 bg-primary text-on-primary px-6 py-2.5 rounded-full hover:bg-primary-fixed-variant transition-all font-label-md shadow-sm"
               >
                 <span className="material-symbols-rounded text-[18px]">download</span> Export Research Data
               </button>
@@ -819,52 +819,52 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
           </div>
 
           {/* KPI Summary Grid (Bento style) */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div 
               onClick={() => setIsAnalyticsModalOpen(true)}
-              className="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 md:p-5 flex flex-col justify-between shadow-xs cursor-pointer hover:bg-surface-container-low transition-colors"
+              className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 flex flex-col justify-between shadow-sm cursor-pointer hover:bg-surface-container-low transition-colors"
             >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs md:text-sm font-semibold text-on-surface-variant">{t('teacher.class_avg')}</span>
-                <span className="material-symbols-rounded text-secondary text-xl">analytics</span>
+              <div className="flex items-center justify-between mb-4">
+                <span className="font-label-md text-on-surface-variant">{t('teacher.class_avg')}</span>
+                <span className="material-symbols-rounded text-secondary text-2xl">analytics</span>
               </div>
-              <div className="flex items-end gap-2">
-                <span className="text-2xl md:text-3xl font-bold text-primary leading-none">
+              <div className="flex items-end gap-3">
+                <span className="font-headline-md text-[40px] text-primary leading-none">
                   {logs.length > 0 ? Math.round(logs.reduce((acc, log) => acc + (log.preTestScore || 0), 0) / logs.length / 9 * 100) : 0}%
                 </span>
-                <span className="text-xs text-secondary-fixed-dim mb-0.5 font-medium">{t('teacher.based_on_pretest')}</span>
+                <span className="font-label-sm text-secondary-fixed-dim mb-1 font-semibold">{t('teacher.based_on_pretest')}</span>
               </div>
             </div>
             <div 
               onClick={() => { setActiveTab('approval'); }}
-              className={`border rounded-xl p-4 md:p-5 flex flex-col justify-between shadow-xs cursor-pointer transition-colors ${
+              className={`border rounded-2xl p-6 flex flex-col justify-between shadow-sm cursor-pointer transition-colors ${
                 activeTab === 'approval' ? 'bg-surface-variant border-primary text-on-surface' : 'bg-surface-container-lowest border-outline-variant hover:bg-surface-container-low'
               }`}
             >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs md:text-sm font-semibold text-on-surface-variant">{t('teacher.ai_queue')}</span>
-                <span className="material-symbols-rounded text-secondary text-xl">edit_document</span>
+              <div className="flex items-center justify-between mb-4">
+                <span className="font-label-md text-on-surface-variant">{t('teacher.ai_queue')}</span>
+                <span className="material-symbols-rounded text-secondary text-2xl">edit_document</span>
               </div>
-              <div className="flex items-end gap-2">
-                <span className="text-2xl md:text-3xl font-bold text-primary leading-none">{cases.length}</span>
-                <span className="text-xs text-on-surface-variant mb-0.5">{t('teacher.total_cases')}</span>
+              <div className="flex items-end gap-3">
+                <span className="font-headline-md text-[40px] text-primary leading-none">{cases.length}</span>
+                <span className="font-label-sm text-on-surface-variant mb-1">{t('teacher.total_cases')}</span>
               </div>
             </div>
             <div 
               onClick={() => { setActiveTab('monitoring'); setStudentFilter(studentFilter === 'needs_help' ? 'all' : 'needs_help'); }}
-              className={`border rounded-xl p-4 md:p-5 flex flex-col justify-between shadow-xs cursor-pointer transition-colors border-error/20 ${
+              className={`border rounded-2xl p-6 flex flex-col justify-between shadow-sm cursor-pointer transition-colors border-error/20 ${
                 studentFilter === 'needs_help' ? 'bg-error-container text-on-error-container border-error' : 'bg-surface-container-lowest hover:bg-surface-container-low'
               }`}
             >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs md:text-sm font-semibold text-on-surface-variant">{t('teacher.alerts')}</span>
-                <span className="material-symbols-rounded text-error text-xl">warning</span>
+              <div className="flex items-center justify-between mb-4">
+                <span className="font-label-md text-on-surface-variant">{t('teacher.alerts')}</span>
+                <span className="material-symbols-rounded text-error text-2xl">warning</span>
               </div>
-              <div className="flex items-end gap-2">
-                <span className={`text-2xl md:text-3xl font-bold leading-none ${studentFilter === 'needs_help' ? 'text-on-error-container' : 'text-error'}`}>
+              <div className="flex items-end gap-3">
+                <span className={`font-headline-md text-[40px] leading-none ${studentFilter === 'needs_help' ? 'text-on-error-container' : 'text-error'}`}>
                   {logs.filter(l => l.assignedTier === 'Low' || (l.preTestScore || 0) < 4).length}
                 </span>
-                <span className="text-xs text-on-surface-variant mb-0.5">{t('teacher.students_flagged')}</span>
+                <span className="font-label-sm text-on-surface-variant mb-1">{t('teacher.students_flagged')}</span>
               </div>
             </div>
           </div>
