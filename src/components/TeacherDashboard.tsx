@@ -658,24 +658,24 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
   return (
     <div className="bg-surface text-on-surface overflow-hidden flex h-screen w-full font-body-md antialiased selection:bg-primary-container selection:text-on-primary-container">
       {/* Desktop Navigation Drawer */}
-      <nav className="hidden md:flex flex-col h-screen fixed left-0 top-0 pt-20 z-30 w-64 border-r border-outline-variant bg-surface-container-low">
+      <nav className="hidden md:flex flex-col h-screen fixed left-0 top-0 pt-20 z-30 w-64 lg:w-72 border-r border-outline-variant bg-surface-container-low">
         <div className="px-6 pb-6">
           <h2 className="font-headline-md text-xl font-bold text-primary">{t('teacher.title')}</h2>
         </div>
-        <ul className="flex-1 flex flex-col gap-2">
+        <ul className="flex-1 flex flex-col gap-1.5 pr-2.5">
           {/* Active/Inactive classes based on state */}
           
           <li>
             <button 
               onClick={() => setActiveTab('allocation')}
-              className={`w-full flex items-center gap-4 py-3 rounded-r-full mr-4 px-6 transition-all ${
+              className={`w-full flex items-center gap-2.5 py-2.5 rounded-r-full pl-4 pr-3 transition-all ${
                 activeTab === 'allocation' 
                   ? 'bg-primary-container text-on-primary-container font-bold hover:bg-primary-fixed' 
                   : 'text-on-surface-variant hover:bg-surface-variant font-label-md'
               }`}
             >
-              <span className="material-symbols-rounded">group_add</span>
-              <span className="font-label-md whitespace-nowrap">Allocation</span>
+              <span className="material-symbols-rounded shrink-0">group_add</span>
+              <span className="font-label-md text-xs lg:text-sm font-semibold whitespace-nowrap">Allocation</span>
               {waitingUsers.length > 0 && (
                 <span className="bg-primary text-on-primary text-xs px-2 py-0.5 rounded-full ml-auto">{waitingUsers.length}</span>
               )}
@@ -685,53 +685,53 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
           <li>
             <button 
               onClick={() => setActiveTab('monitoring')}
-              className={`w-full flex items-center gap-4 py-3 rounded-r-full mr-4 px-6 transition-all ${
+              className={`w-full flex items-center gap-2.5 py-2.5 rounded-r-full pl-4 pr-3 transition-all ${
                 activeTab === 'monitoring' 
                   ? 'bg-primary-container text-on-primary-container font-bold hover:bg-primary-fixed' 
                   : 'text-on-surface-variant hover:bg-surface-variant font-label-md'
               }`}
             >
-              <span className="material-symbols-rounded fill" data-icon="monitoring">monitoring</span>
-              <span className="font-label-md whitespace-nowrap">{t('teacher.monitoring')}</span>
+              <span className="material-symbols-rounded shrink-0 fill" data-icon="monitoring">monitoring</span>
+              <span className="font-label-md text-xs lg:text-sm font-semibold whitespace-nowrap">{t('teacher.monitoring')}</span>
             </button>
           </li>
           <li>
             <button 
               onClick={() => setActiveTab('approval')}
-              className={`w-full flex items-center gap-4 py-3 rounded-r-full mr-4 px-6 transition-all ${
+              className={`w-full flex items-center gap-2.5 py-2.5 rounded-r-full pl-4 pr-3 transition-all ${
                 activeTab === 'approval' 
                   ? 'bg-primary-container text-on-primary-container font-bold hover:bg-primary-fixed' 
                   : 'text-on-surface-variant hover:bg-surface-variant font-label-md'
               }`}
             >
-              <span className="material-symbols-rounded" data-icon="edit_note">edit_document</span>
-              <span className="font-label-md whitespace-nowrap">{t('teacher.approvals')}</span>
+              <span className="material-symbols-rounded shrink-0" data-icon="edit_note">edit_document</span>
+              <span className="font-label-md text-xs lg:text-sm font-semibold whitespace-nowrap">{t('teacher.approvals')}</span>
             </button>
           </li>
           <li>
             <button 
               onClick={() => setActiveTab('exam_bank')}
-              className={`w-full flex items-center gap-4 py-3 rounded-r-full mr-4 px-6 transition-all ${
+              className={`w-full flex items-center gap-2.5 py-2.5 rounded-r-full pl-4 pr-3 transition-all ${
                 activeTab === 'exam_bank' 
                   ? 'bg-primary-container text-on-primary-container font-bold hover:bg-primary-fixed' 
                   : 'text-on-surface-variant hover:bg-surface-variant font-label-md'
               }`}
             >
-              <span className="material-symbols-rounded">quiz</span>
-              <span className="font-label-md whitespace-nowrap">คลังข้อสอบ (Exam Bank)</span>
+              <span className="material-symbols-rounded shrink-0">quiz</span>
+              <span className="font-label-md text-xs lg:text-sm font-semibold tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">คลังข้อสอบ (Exam Bank)</span>
             </button>
           </li>
           <li>
             <button 
               onClick={() => setActiveTab('bug_reports')}
-              className={`w-full flex items-center gap-4 py-3 rounded-r-full mr-4 px-6 transition-all ${
+              className={`w-full flex items-center gap-2.5 py-2.5 rounded-r-full pl-4 pr-3 transition-all ${
                 activeTab === 'bug_reports' 
                   ? 'bg-primary-container text-on-primary-container font-bold hover:bg-primary-fixed' 
                   : 'text-on-surface-variant hover:bg-surface-variant font-label-md'
               }`}
             >
-              <span className="material-symbols-rounded">bug_report</span>
-              <span className="font-label-md whitespace-nowrap">{t('teacher.bugs')}</span>
+              <span className="material-symbols-rounded shrink-0">bug_report</span>
+              <span className="font-label-md text-xs lg:text-sm font-semibold whitespace-nowrap">{t('teacher.bugs')}</span>
               {bugReports.length > 0 && (
                 <span className="bg-error text-on-error text-xs px-2 py-0.5 rounded-full ml-auto">{bugReports.length}</span>
               )}
@@ -739,7 +739,7 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
           </li>
         </ul>
         <div className="p-4 border-t border-outline-variant">
-          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-6 py-3 text-on-surface-variant hover:text-error hover:bg-error-container rounded-xl transition-colors font-label-md">
+          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-5 py-2.5 text-on-surface-variant hover:text-error hover:bg-error-container rounded-xl transition-colors font-label-md">
             <span className="material-symbols-rounded">logout</span>
             {t('teacher.logout')}
           </button>
@@ -747,7 +747,7 @@ const TeacherDashboard = ({ onSwitchToStudent }: { onSwitchToStudent?: () => voi
       </nav>
 
       {/* Main Content Wrapper */}
-      <div className="flex-1 flex flex-col h-screen overflow-hidden md:ml-64 w-full">
+      <div className="flex-1 flex flex-col h-screen overflow-hidden md:ml-64 lg:ml-72 w-full">
         
         {/* Top App Bar */}
         <header className="w-full top-0 border-b border-outline-variant flex justify-between items-center px-4 md:px-10 py-4 z-40 bg-surface-container-lowest">
