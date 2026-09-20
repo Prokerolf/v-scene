@@ -6,7 +6,7 @@ import { db, storage, auth } from '../lib/firebase';
 import { labOptions } from './LabOrderScene';
 import { drugOptions } from './TreatmentScene';
 
-type Tab = 'general' | 'pretest' | 'history' | 'labs' | 'treatments';
+type Tab = 'general' | 'history' | 'labs' | 'treatments';
 
 const SearchableMultiSelect = ({ 
   options, 
@@ -214,7 +214,7 @@ export const CaseEditModal = ({ isOpen, onClose, caseData, onSave }: { isOpen: b
         <div className="px-6 py-4 border-b border-outline-variant flex justify-between items-center bg-surface-container-low">
           <div>
             <h2 className="font-headline-md text-xl text-on-surface">Case CMS: {editingCase.diseaseName}</h2>
-            <p className="font-label-sm text-on-surface-variant">Edit details, pre-test, labs, and treatments before deploying.</p>
+            <p className="font-label-sm text-on-surface-variant">Edit details, labs, and treatments before deploying.</p>
           </div>
           <button onClick={onClose} className="p-2 text-on-surface-variant hover:bg-surface-variant rounded-full transition-colors">
             <X className="w-6 h-6" />
@@ -225,7 +225,6 @@ export const CaseEditModal = ({ isOpen, onClose, caseData, onSave }: { isOpen: b
         <div className="flex flex-wrap border-b border-outline-variant px-6 bg-surface-container-low/50">
           {[
             { id: 'general', label: 'General Info' },
-            { id: 'pretest', label: 'Pre-Test' },
             { id: 'history', label: 'History & DDx' },
             { id: 'labs', label: 'Labs & Images' },
             { id: 'treatments', label: 'Treatments' }
@@ -286,39 +285,6 @@ export const CaseEditModal = ({ isOpen, onClose, caseData, onSave }: { isOpen: b
                 <label className="block font-label-sm mb-1 text-on-surface-variant">Persona Details (For AI)</label>
                 <textarea value={editingCase.personaDetails || ''} onChange={e => updateField('personaDetails', e.target.value)} className="w-full h-32 bg-surface border border-outline-variant rounded-lg p-3 text-sm focus:border-primary outline-none resize-none" />
               </div>
-            </div>
-          )}
-
-          {activeTab === 'pretest' && (
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <p className="font-body-sm text-on-surface-variant">Configure the pre-test questions shown before the case.</p>
-                <button onClick={addPreTestQuestion} className="bg-secondary-container text-on-secondary-container px-4 py-2 rounded-full font-label-sm flex items-center gap-2 hover:opacity-90 transition-colors">
-                  <Plus className="w-4 h-4" /> Add Question
-                </button>
-              </div>
-              {(editingCase.preTestQuestions || []).map((q: any, qIdx: number) => (
-                <div key={qIdx} className="border border-outline-variant rounded-xl p-4 bg-surface-container-lowest">
-                  <div className="flex justify-between items-start mb-3">
-                    <span className="font-label-md font-bold text-primary">Question {qIdx + 1}</span>
-                    <button onClick={() => removePreTestQuestion(qIdx)} className="text-error hover:bg-error-container p-1 rounded-md transition-colors"><Trash2 className="w-4 h-4" /></button>
-                  </div>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block font-label-sm mb-1 text-on-surface-variant">Question Text</label>
-                      <input type="text" value={q.question || ''} onChange={e => updatePreTest(qIdx, 'question', e.target.value)} className="w-full bg-surface border border-outline-variant rounded-lg px-3 py-2 text-sm focus:border-primary outline-none" />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      {(q.options || []).map((opt: string, optIdx: number) => (
-                        <div key={optIdx} className="flex items-center gap-2">
-                          <input type="radio" name={`correct-${qIdx}`} checked={q.correctAnswerIndex === optIdx} onChange={() => updatePreTest(qIdx, 'correctAnswerIndex', optIdx)} className="accent-primary w-4 h-4" />
-                          <input type="text" value={opt || ''} onChange={e => updatePreTestOption(qIdx, optIdx, e.target.value)} className="flex-1 bg-surface border border-outline-variant rounded-lg px-3 py-1.5 text-sm focus:border-primary outline-none" placeholder={`Option ${optIdx + 1}`} />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ))}
             </div>
           )}
 
