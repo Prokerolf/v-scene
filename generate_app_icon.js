@@ -8,14 +8,14 @@ async function generateIcons() {
   const metadata = await sharp(logoPath).metadata();
   console.log('Original Logo:', metadata.width, 'x', metadata.height);
 
-  // Resize logo proportionally so width = 420px (preserving aspect ratio)
+  // Resize logo proportionally to fill the frame (width = 496px)
   const resizedLogoBuffer = await sharp(logoPath)
-    .resize({ width: 420, fit: 'contain' })
+    .resize({ width: 496, fit: 'contain' })
     .toBuffer();
 
   const resizedMeta = await sharp(resizedLogoBuffer).metadata();
 
-  // 2. Create 512x512 Square Canvas with Solid White background (standard iOS App Icon)
+  // 2. Create 512x512 Square Canvas with Solid White background
   const whiteIconBuffer = await sharp({
     create: {
       width: 512,
@@ -40,7 +40,7 @@ async function generateIcons() {
   await sharp(whiteIconBuffer).toFile('public/logo.png');
   await sharp(whiteIconBuffer).toFile('public/assets/logo.png');
 
-  console.log('Successfully generated 512x512 proportional square app icons!');
+  console.log('Successfully generated max-fill 512x512 app icons!');
 }
 
 generateIcons().catch(err => {
