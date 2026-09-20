@@ -3,13 +3,13 @@
   "name": "V-SCENE Medical Simulation",
   "icons": [
     {
-      "src": "/apple-touch-icon.png",
+      "src": "/apple-touch-icon.png?v=4",
       "type": "image/png",
       "sizes": "180x180 512x512",
       "purpose": "any maskable"
     },
     {
-      "src": "/logo.png",
+      "src": "/logo.png?v=4",
       "type": "image/png",
       "sizes": "512x512"
     }
