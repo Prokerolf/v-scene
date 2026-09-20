@@ -1,0 +1,16 @@
+{
+  "short_name": "V-SCENE",
+  "name": "V-SCENE Medical Simulation",
+  "icons": [
+    {
+      "src": "/assets/logo.png",
+      "type": "image/png",
+      "sizes": "192x192 512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#755564",
+  "theme_color": "#755564",
+  "display": "standalone",
+  "orientation": "portrait"
+}

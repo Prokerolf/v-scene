@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">V-SCENE</string>
+    <string name="title_activity_main">V-SCENE</string>
+    <string name="package_name">com.vscene.med</string>
+    <string name="custom_url_scheme">com.vscene.med</string>
+</resources>
