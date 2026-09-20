@@ -375,20 +375,20 @@ export default function StudentApp({ user, onSwitchToTeacher }: StudentAppProps)
         </div>
       )}
 
-      <div className="fixed bottom-4 left-4 z-[999999] flex flex-col gap-2 items-start">
+      <div className="fixed bottom-3 left-3 z-[999999] flex flex-col gap-1.5 items-start opacity-80 hover:opacity-100 transition-opacity scale-80 md:scale-90 origin-bottom-left">
         {onSwitchToTeacher && (
           <button 
             onClick={onSwitchToTeacher}
-            className="px-4 py-2 bg-purple-700 text-white rounded-full shadow-lg font-bold text-sm hover:bg-purple-600 hover:scale-105 transition-transform flex items-center gap-2 border border-purple-400/30"
+            className="px-3 py-1.5 bg-purple-700 text-white rounded-lg shadow-md font-bold text-xs hover:bg-purple-600 transition-all flex items-center gap-1.5 border border-purple-400/30"
           >
-            <span className="material-symbols-rounded text-[18px]">admin_panel_settings</span> Switch to Teacher View
+            <span className="material-symbols-rounded text-[16px]">admin_panel_settings</span> Switch to Teacher View
           </button>
         )}
         <button 
           onClick={handleSkipForDev}
-          className="px-4 py-2 bg-yellow-500 text-black rounded-full shadow-lg font-bold text-sm hover:bg-yellow-400 hover:scale-105 transition-transform flex items-center gap-2"
+          className="px-3 py-1.5 bg-yellow-500 text-black rounded-lg shadow-md font-bold text-xs hover:bg-yellow-400 transition-all flex items-center gap-1.5"
         >
-          <span className="material-symbols-rounded text-[18px]">fast_forward</span> Skip for Dev
+          <span className="material-symbols-rounded text-[16px]">fast_forward</span> Skip for Dev
         </button>
         <button 
           onClick={async () => {
@@ -400,9 +400,9 @@ export default function StudentApp({ user, onSwitchToTeacher }: StudentAppProps)
              alert('Switched to Group ' + next);
              window.location.reload();
           }}
-          className="px-4 py-2 bg-blue-500 text-white rounded-full shadow-lg font-bold text-sm hover:bg-blue-400 hover:scale-105 transition-transform flex items-center gap-2"
+          className="px-3 py-1.5 bg-blue-500 text-white rounded-lg shadow-md font-bold text-xs hover:bg-blue-400 transition-all flex items-center gap-1.5"
         >
-          <span className="material-symbols-rounded text-[18px]">swap_horiz</span> Toggle Group (A/B)
+          <span className="material-symbols-rounded text-[16px]">swap_horiz</span> Toggle Group (A/B)
         </button>
       </div>
 

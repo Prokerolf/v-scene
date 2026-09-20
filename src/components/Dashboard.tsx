@@ -194,8 +194,8 @@ const Dashboard = ({ onStartCase, onStartPreTest, onStartPostTest }: DashboardPr
           >
             <span className="material-symbols-rounded text-[24px]">menu</span>
           </button>
-          <div className="h-14 md:h-20 overflow-hidden flex items-center justify-center">
-            <img src={logoImg} alt="V-SCENE Logo" className="h-40 md:h-52 w-auto object-contain" />
+          <div className="h-10 md:h-12 flex items-center justify-center">
+            <img src={logoImg} alt="V-SCENE Logo" className="h-9 md:h-11 w-auto object-contain" />
           </div>
         </div>
         <div className="flex items-center gap-4">

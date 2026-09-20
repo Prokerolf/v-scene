@@ -238,10 +238,10 @@ const FinalPostTest = ({ onComplete, onLogout, onSwitchToTeacher }: FinalPostTes
       <header className="bg-surface-container-lowest border-b border-outline-variant w-full top-0 z-40 sticky">
         <div className="flex justify-between items-center px-4 md:px-6 py-4 w-full max-w-5xl mx-auto">
           <div className="flex items-center gap-3">
-            <div className="h-14 md:h-20 overflow-hidden flex items-center justify-center">
-              <img src={logoImg} alt="V-SCENE Logo" className="h-40 md:h-52 w-auto object-contain" />
+            <div className="h-10 md:h-12 flex items-center justify-center">
+              <img src={logoImg} alt="V-SCENE Logo" className="h-9 md:h-11 w-auto object-contain" />
             </div>
-            <span className="font-headline-md font-bold text-primary ml-2">Final Post-Test (Period {activePeriod})</span>
+            <span className="text-base md:text-lg font-bold text-primary ml-2">Final Post-Test (Period {activePeriod})</span>
           </div>
           <div className="flex items-center gap-2">
             {onSwitchToTeacher && (
