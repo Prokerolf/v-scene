@@ -308,15 +308,18 @@ const Dashboard = ({ onStartCase, onStartPreTest, onStartPostTest }: DashboardPr
           )}
 
           {/* Psychological Safety UI */}
-          <div className="mt-auto bg-surface-container p-4 rounded-xl border border-outline-variant">
-            <h3 className="font-label-md text-on-surface mb-2">Improvement Progress</h3>
-            <div className="flex items-center gap-2 mb-1">
-              <div className="flex-1 bg-outline-variant rounded-full h-2">
-                <div className="bg-primary h-2 rounded-full transition-all duration-1000 ease-out" style={{ width: `${progressPercent}%` }}></div>
-              </div>
-              <span className="font-label-sm text-primary whitespace-nowrap min-w-[64px] text-right">{progressLabel}</span>
+          <div className="mt-auto bg-surface-container p-4 rounded-xl border border-outline-variant shadow-2xs">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="font-label-md font-bold text-on-surface">Improvement Progress</h3>
+              <span className="font-label-sm font-bold text-primary">{progressPercent}% ({uniqueCasesCompleted}/{availableCases.length} เคส)</span>
             </div>
-            <p className="font-label-sm text-on-surface-variant mt-2">{progressText}</p>
+            <div className="flex items-center gap-2 mb-1">
+              <div className="flex-1 bg-outline-variant/60 rounded-full h-3 overflow-hidden p-0.5">
+                <div className="bg-primary h-full rounded-full transition-all duration-1000 ease-out shadow-xs" style={{ width: `${progressPercent}%` }}></div>
+              </div>
+              <span className="font-label-sm text-primary whitespace-nowrap font-bold min-w-[56px] text-right">{progressLabel}</span>
+            </div>
+            <p className="font-label-sm text-on-surface-variant mt-2 leading-relaxed">{progressText}</p>
           </div>
         </div>
       </nav>
