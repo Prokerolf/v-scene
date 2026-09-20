@@ -663,22 +663,22 @@ const HistoryTakingScene = ({
       </div>
       
       {/* TopAppBar */}
-      <header className="bg-surface-container-lowest w-full top-0 border-b border-outline-variant flex justify-between items-center px-3 md:px-5 py-2.5 z-10 shadow-xs">
+      <header className="bg-surface-container-lowest w-full top-0 border-b border-outline-variant flex justify-between items-center px-3 md:px-5 lg:px-6 py-2.5 lg:py-4 z-10 shadow-xs">
         <div className="flex items-center gap-2 md:gap-3">
-          <button onClick={onBack} className="p-1.5 hover:bg-surface-container-low rounded-full transition text-on-surface-variant hover:text-primary flex-shrink-0" title="Back">
-            <span className="material-symbols-rounded text-[20px]">arrow_back</span>
+          <button onClick={onBack} className="p-1.5 lg:p-2 hover:bg-surface-container-low rounded-full transition text-on-surface-variant hover:text-primary flex-shrink-0" title="Back">
+            <span className="material-symbols-rounded text-[20px] lg:text-[24px]">arrow_back</span>
           </button>
-          <div className="bg-secondary-container p-1.5 rounded-full hidden sm:block">
-            <span className="material-symbols-rounded text-secondary text-[18px]">stethoscope</span>
+          <div className="bg-secondary-container p-1.5 lg:p-2 rounded-full hidden sm:block">
+            <span className="material-symbols-rounded text-secondary text-[18px] lg:text-[20px]">stethoscope</span>
           </div>
-          <h1 className="text-base md:text-lg font-bold text-on-surface hidden sm:block">{t('scenes.history.title')}</h1>
+          <h1 className="text-base md:text-lg lg:text-2xl font-bold text-on-surface hidden sm:block">{t('scenes.history.title')}</h1>
           <h1 className="text-base font-bold text-on-surface sm:hidden">{t('scenes.history.title')}</h1>
         </div>
         <div className="flex items-center gap-2 md:gap-3">
           {onToggleScratchpad && (
             <button 
               onClick={onToggleScratchpad}
-              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-surface-container-low hover:bg-surface-container text-on-surface-variant border border-outline-variant transition-colors shadow-2xs"
+              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs lg:text-sm font-semibold bg-surface-container-low hover:bg-surface-container text-on-surface-variant border border-outline-variant transition-colors shadow-2xs"
               title="ซ่อน/แสดงกระดาษทด"
             >
               <span className="material-symbols-rounded text-[18px]">edit_note</span>
@@ -687,16 +687,16 @@ const HistoryTakingScene = ({
           )}
           <button 
             onClick={startTutorial}
-            className="text-xs font-semibold text-on-surface-variant hover:text-primary bg-surface-container-low hover:bg-surface-container px-3 py-1.5 rounded-full transition-colors flex items-center gap-1.5"
+            className="text-xs lg:text-sm font-semibold text-on-surface-variant hover:text-primary bg-surface-container-low hover:bg-surface-container px-3 py-1.5 lg:px-4 lg:py-2 rounded-full transition-colors flex items-center gap-1.5"
           >
-            <span className="material-symbols-rounded text-[16px]">help</span> <span className="hidden sm:inline">Tutorial</span>
+            <span className="material-symbols-rounded text-[16px] lg:text-[18px]">help</span> <span className="hidden sm:inline">Tutorial</span>
           </button>
-          <div id="tour-timer" className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-mono text-sm md:text-base font-bold transition-colors border ${
+          <div id="tour-timer" className={`flex items-center gap-1.5 px-3 py-1 lg:px-4 lg:py-2 rounded-full font-mono text-sm md:text-base lg:text-lg font-bold transition-colors border ${
             timeLeft < 120 
               ? 'bg-error-container text-on-error-container border-error animate-pulse' 
               : 'bg-surface-container-low text-on-surface border-outline-variant'
           }`}>
-            <span className="material-symbols-rounded text-[18px]">timer</span>
+            <span className="material-symbols-rounded text-[18px] lg:text-[20px]">timer</span>
             {formatTime(timeLeft)}
           </div>
         </div>
@@ -705,49 +705,49 @@ const HistoryTakingScene = ({
       <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
         {/* Patient Profile Sidebar */}
         <aside className="w-full md:w-72 lg:w-80 bg-surface-container-lowest border-b md:border-b-0 md:border-r border-outline-variant flex flex-row md:flex-col shadow-xs z-0 shrink-0 overflow-y-auto">
-          <div id="tour-avatar" className="w-24 md:w-36 lg:w-40 h-24 md:h-36 lg:h-40 my-3 mx-auto relative flex-shrink-0 rounded-full border-2 border-outline-variant overflow-hidden bg-surface-container-low flex items-center justify-center shadow-sm">
+          <div id="tour-avatar" className="w-24 md:w-36 lg:w-full h-24 md:h-36 lg:h-64 my-3 lg:my-0 mx-auto lg:mx-0 relative flex-shrink-0 rounded-full lg:rounded-none border-2 lg:border-0 lg:border-b border-outline-variant overflow-hidden bg-surface-container-low flex items-center justify-center shadow-sm">
             <PatientAvatar3D audioElement={currentAudio} isSpeakingFallback={isSpeakingFallback} patientCase={patientCase} />
-            <div className="absolute bottom-1 left-1/2 -translate-x-1/2 bg-surface-container-lowest/90 text-on-surface text-[10px] md:text-xs font-semibold px-2.5 py-0.5 rounded-full shadow-xs border border-outline-variant hidden md:block whitespace-nowrap">
+            <div className="absolute bottom-1 left-1/2 -translate-x-1/2 lg:bottom-4 lg:left-4 lg:translate-x-0 bg-surface-container-lowest/90 text-on-surface text-[10px] md:text-xs lg:text-sm font-semibold px-2.5 py-0.5 lg:px-3 lg:py-1.5 rounded-full shadow-xs border border-outline-variant hidden md:block whitespace-nowrap">
               AI Patient: {patientCase?.patientName}
             </div>
           </div>
 
-          <div className="flex-1 flex flex-col p-3 md:p-4 justify-start">
-            <div id="tour-cc" className="bg-primary-container/30 border border-primary-container rounded-xl p-3 md:p-4 relative overflow-hidden text-center mb-3 shadow-2xs">
-              <h3 className="text-[10px] md:text-xs font-bold text-primary uppercase tracking-wider mb-1">Chief Complaint</h3>
-              <p className="font-semibold text-xs md:text-sm text-on-surface leading-snug">"{patientCase?.chiefComplaint}"</p>
+          <div className="flex-1 flex flex-col p-3 md:p-4 lg:p-6 justify-start">
+            <div id="tour-cc" className="bg-primary-container/30 border border-primary-container rounded-xl lg:rounded-2xl p-3 md:p-4 lg:p-6 relative overflow-hidden text-center mb-3 lg:mb-4 shadow-2xs">
+              <h3 className="text-[10px] md:text-xs lg:text-sm font-bold text-primary uppercase tracking-wider mb-1 lg:mb-2">Chief Complaint</h3>
+              <p className="font-semibold text-xs md:text-sm lg:text-base text-on-surface leading-snug">"{patientCase?.chiefComplaint}"</p>
             </div>
 
             {patientCase?.vitals && (
-              <div id="tour-vitals" className="bg-surface-container-lowest border border-outline-variant rounded-xl p-3 md:p-4 shadow-2xs relative overflow-hidden hidden md:block">
-                <div className="flex items-center gap-2 mb-2">
+              <div id="tour-vitals" className="bg-surface-container-lowest border border-outline-variant rounded-xl lg:rounded-2xl p-3 md:p-4 lg:p-5 shadow-2xs relative overflow-hidden hidden md:block">
+                <div className="flex items-center gap-2 mb-2 lg:mb-4">
                   <div className="w-2 h-2 rounded-full bg-error animate-pulse"></div>
-                  <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Vital Signs</h3>
+                  <h3 className="text-xs lg:text-sm font-bold text-on-surface-variant uppercase tracking-wider">Vital Signs</h3>
                 </div>
-                <div className="grid grid-cols-2 gap-y-2 gap-x-3 text-xs font-body-md">
+                <div className="grid grid-cols-2 gap-y-2 lg:gap-y-3 gap-x-3 lg:gap-x-4 text-xs lg:text-sm font-body-md">
                   <div className="flex justify-between border-b border-outline-variant/50 pb-1">
                     <span className="text-on-surface-variant font-medium">BP</span>
-                    <span className="font-bold text-on-surface">{patientCase.vitals.bp} <span className="text-[9px] text-outline font-normal">mmHg</span></span>
+                    <span className="font-bold text-on-surface">{patientCase.vitals.bp} <span className="text-[9px] lg:text-[10px] text-outline font-normal">mmHg</span></span>
                   </div>
                   <div className="flex justify-between border-b border-outline-variant/50 pb-1">
                     <span className="text-on-surface-variant font-medium">HR</span>
-                    <span className="font-bold text-on-surface">{patientCase.vitals.hr} <span className="text-[9px] text-outline font-normal">bpm</span></span>
+                    <span className="font-bold text-on-surface">{patientCase.vitals.hr} <span className="text-[9px] lg:text-[10px] text-outline font-normal">bpm</span></span>
                   </div>
                   <div className="flex justify-between border-b border-outline-variant/50 pb-1">
                     <span className="text-on-surface-variant font-medium">RR</span>
-                    <span className="font-bold text-on-surface">{patientCase.vitals.rr} <span className="text-[9px] text-outline font-normal">/min</span></span>
+                    <span className="font-bold text-on-surface">{patientCase.vitals.rr} <span className="text-[9px] lg:text-[10px] text-outline font-normal">/min</span></span>
                   </div>
                   <div className="flex justify-between border-b border-outline-variant/50 pb-1">
                     <span className="text-on-surface-variant font-medium">Temp</span>
-                    <span className="font-bold text-on-surface">{patientCase.vitals.temp} <span className="text-[9px] text-outline font-normal">°C</span></span>
+                    <span className="font-bold text-on-surface">{patientCase.vitals.temp} <span className="text-[9px] lg:text-[10px] text-outline font-normal">°C</span></span>
                   </div>
                   <div className="flex justify-between border-b border-outline-variant/50 pb-1">
                     <span className="text-on-surface-variant font-medium">SpO2</span>
-                    <span className="font-bold text-on-surface">{patientCase.vitals.spo2} <span className="text-[9px] text-outline font-normal">%</span></span>
+                    <span className="font-bold text-on-surface">{patientCase.vitals.spo2} <span className="text-[9px] lg:text-[10px] text-outline font-normal">%</span></span>
                   </div>
                   <div className="flex justify-between border-b border-outline-variant/50 pb-1">
                     <span className="text-on-surface-variant font-medium">Wt/Ht</span>
-                    <span className="font-bold text-on-surface text-[10px] whitespace-nowrap">{patientCase.vitals.weight}kg / {patientCase.vitals.height}cm</span>
+                    <span className="font-bold text-on-surface text-[10px] lg:text-xs whitespace-nowrap">{patientCase.vitals.weight}kg / {patientCase.vitals.height}cm</span>
                   </div>
                 </div>
               </div>
