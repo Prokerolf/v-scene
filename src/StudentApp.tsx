@@ -52,7 +52,7 @@ export default function StudentApp({ user, onSwitchToTeacher }: StudentAppProps)
   const fadingRef = useRef(false);
   const splashRef = useRef<HTMLDivElement>(null);
 
-  // Auto-save states
+  const [isScratchpadOpen, setIsScratchpadOpen] = useState<boolean>(true);
   const [gatewayAnswers, setGatewayAnswers] = useState<number[]>(new Array(30).fill(-1));
   const [gatewayIndex, setGatewayIndex] = useState<number>(0);
   const [chatHistory, setChatHistory] = useState<any[]>([]);
@@ -439,8 +439,8 @@ export default function StudentApp({ user, onSwitchToTeacher }: StudentAppProps)
       )}
 
       {stage === 'history' && (
-        <div className="flex flex-col md:flex-row w-full min-h-screen items-start">
-          <div className="w-full md:w-[70%] lg:w-[75%]">
+        <div className="flex flex-col md:flex-row w-full min-h-screen items-start relative">
+          <div className={`transition-all duration-300 ${isScratchpadOpen ? 'w-full md:w-[70%] lg:w-[75%]' : 'w-full'}`}>
             <HistoryTakingScene 
               activeCase={activeCase}
               preTestScore={preTestScore}
@@ -456,23 +456,28 @@ export default function StudentApp({ user, onSwitchToTeacher }: StudentAppProps)
               setChatHistory={setChatHistory}
               timeLeft={timeLeft}
               setTimeLeft={setTimeLeft}
+              isScratchpadOpen={isScratchpadOpen}
+              onToggleScratchpad={() => setIsScratchpadOpen(prev => !prev)}
             />
           </div>
-          <div className="hidden md:block md:w-[30%] lg:w-[25%] z-50 sticky top-0 h-screen">
-            <ScratchpadWidget 
-              notes={scratchpadText} 
-              setNotes={setScratchpadText} 
-              submittedDDx={submittedDDx} 
-              finalDiagnosis={finalDiagnosis} 
-              selectedLabs={selectedLabs} 
-            />
-          </div>
+          {isScratchpadOpen && (
+            <div className="hidden md:block md:w-[30%] lg:w-[25%] z-50 sticky top-0 h-screen transition-all duration-300">
+              <ScratchpadWidget 
+                notes={scratchpadText} 
+                setNotes={setScratchpadText} 
+                submittedDDx={submittedDDx} 
+                finalDiagnosis={finalDiagnosis} 
+                selectedLabs={selectedLabs} 
+                onClose={() => setIsScratchpadOpen(false)}
+              />
+            </div>
+          )}
         </div>
       )}
 
       {stage === 'lab' && (
-        <div className="flex flex-col md:flex-row w-full min-h-screen items-start">
-          <div className="w-full md:w-[70%] lg:w-[75%] h-full">
+        <div className="flex flex-col md:flex-row w-full min-h-screen items-start relative">
+          <div className={`transition-all duration-300 ${isScratchpadOpen ? 'w-full md:w-[70%] lg:w-[75%]' : 'w-full'} h-full`}>
             <LabOrderScene 
               activeCase={activeCase}
               addLogAction={addLogAction}
@@ -488,42 +493,48 @@ export default function StudentApp({ user, onSwitchToTeacher }: StudentAppProps)
               setSelectedLabs={setSelectedLabs}
             />
           </div>
-          <div className="hidden md:block md:w-[30%] lg:w-[25%] z-50 sticky top-0 h-screen">
-            <ScratchpadWidget 
-              notes={scratchpadText} 
-              setNotes={setScratchpadText} 
-              submittedDDx={submittedDDx} 
-              finalDiagnosis={finalDiagnosis} 
-              selectedLabs={selectedLabs} 
-            />
-          </div>
+          {isScratchpadOpen && (
+            <div className="hidden md:block md:w-[30%] lg:w-[25%] z-50 sticky top-0 h-screen transition-all duration-300">
+              <ScratchpadWidget 
+                notes={scratchpadText} 
+                setNotes={setScratchpadText} 
+                submittedDDx={submittedDDx} 
+                finalDiagnosis={finalDiagnosis} 
+                selectedLabs={selectedLabs} 
+                onClose={() => setIsScratchpadOpen(false)}
+              />
+            </div>
+          )}
         </div>
       )}
 
       {stage === 'lab_results' && (
-        <div className="flex flex-col md:flex-row w-full min-h-screen items-start">
-          <div className="w-full md:w-[70%] lg:w-[75%] h-full">
+        <div className="flex flex-col md:flex-row w-full min-h-screen items-start relative">
+          <div className={`transition-all duration-300 ${isScratchpadOpen ? 'w-full md:w-[70%] lg:w-[75%]' : 'w-full'} h-full`}>
             <LabResultsScene
               activeCase={activeCase}
               selectedLabs={selectedLabs}
               onNext={() => setStage('diagnostic')}
             />
           </div>
-          <div className="hidden md:block md:w-[30%] lg:w-[25%] z-50 sticky top-0 h-screen">
-            <ScratchpadWidget 
-              notes={scratchpadText} 
-              setNotes={setScratchpadText} 
-              submittedDDx={submittedDDx} 
-              finalDiagnosis={finalDiagnosis} 
-              selectedLabs={selectedLabs} 
-            />
-          </div>
+          {isScratchpadOpen && (
+            <div className="hidden md:block md:w-[30%] lg:w-[25%] z-50 sticky top-0 h-screen transition-all duration-300">
+              <ScratchpadWidget 
+                notes={scratchpadText} 
+                setNotes={setScratchpadText} 
+                submittedDDx={submittedDDx} 
+                finalDiagnosis={finalDiagnosis} 
+                selectedLabs={selectedLabs} 
+                onClose={() => setIsScratchpadOpen(false)}
+              />
+            </div>
+          )}
         </div>
       )}
 
       {stage === 'diagnostic' && (
-        <div className="flex flex-col md:flex-row w-full min-h-screen items-start">
-          <div className="w-full md:w-[70%] lg:w-[75%] h-full">
+        <div className="flex flex-col md:flex-row w-full min-h-screen items-start relative">
+          <div className={`transition-all duration-300 ${isScratchpadOpen ? 'w-full md:w-[70%] lg:w-[75%]' : 'w-full'} h-full`}>
             <DiagnosticSynthesisScene
               activeCase={activeCase}
               addLogAction={addLogAction}
@@ -540,21 +551,24 @@ export default function StudentApp({ user, onSwitchToTeacher }: StudentAppProps)
               setDiagnosticInput={setDiagnosticInput}
             />
           </div>
-          <div className="hidden md:block md:w-[30%] lg:w-[25%] z-50 sticky top-0 h-screen">
-            <ScratchpadWidget 
-              notes={scratchpadText} 
-              setNotes={setScratchpadText} 
-              submittedDDx={submittedDDx} 
-              finalDiagnosis={finalDiagnosis} 
-              selectedLabs={selectedLabs} 
-            />
-          </div>
+          {isScratchpadOpen && (
+            <div className="hidden md:block md:w-[30%] lg:w-[25%] z-50 sticky top-0 h-screen transition-all duration-300">
+              <ScratchpadWidget 
+                notes={scratchpadText} 
+                setNotes={setScratchpadText} 
+                submittedDDx={submittedDDx} 
+                finalDiagnosis={finalDiagnosis} 
+                selectedLabs={selectedLabs} 
+                onClose={() => setIsScratchpadOpen(false)}
+              />
+            </div>
+          )}
         </div>
       )}
 
       {stage === 'treatment' && (
-        <div className="flex flex-col md:flex-row w-full min-h-screen items-start">
-          <div className="w-full md:w-[70%] lg:w-[75%] h-full">
+        <div className="flex flex-col md:flex-row w-full min-h-screen items-start relative">
+          <div className={`transition-all duration-300 ${isScratchpadOpen ? 'w-full md:w-[70%] lg:w-[75%]' : 'w-full'} h-full`}>
             <TreatmentScene 
               activeCase={activeCase}
               addLogAction={addLogAction}
@@ -643,15 +657,18 @@ export default function StudentApp({ user, onSwitchToTeacher }: StudentAppProps)
               }} 
             />
           </div>
-          <div className="hidden md:block md:w-[30%] lg:w-[25%] z-50 sticky top-0 h-screen">
-            <ScratchpadWidget 
-              notes={scratchpadText} 
-              setNotes={setScratchpadText} 
-              submittedDDx={submittedDDx} 
-              finalDiagnosis={finalDiagnosis} 
-              selectedLabs={selectedLabs} 
-            />
-          </div>
+          {isScratchpadOpen && (
+            <div className="hidden md:block md:w-[30%] lg:w-[25%] z-50 sticky top-0 h-screen transition-all duration-300">
+              <ScratchpadWidget 
+                notes={scratchpadText} 
+                setNotes={setScratchpadText} 
+                submittedDDx={submittedDDx} 
+                finalDiagnosis={finalDiagnosis} 
+                selectedLabs={selectedLabs} 
+                onClose={() => setIsScratchpadOpen(false)}
+              />
+            </div>
+          )}
         </div>
       )}
 

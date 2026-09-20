@@ -1,5 +1,5 @@
 import React from 'react';
-import { PenTool, CheckCircle, Search, FileText } from 'lucide-react';
+import { PenTool, CheckCircle, Search, FileText, X } from 'lucide-react';
 import { CLINICAL_CASES } from '../data/cases';
 import { labOptions } from './LabOrderScene';
 
@@ -9,6 +9,7 @@ interface ScratchpadWidgetProps {
   submittedDDx: string;
   finalDiagnosis: string;
   selectedLabs: string[];
+  onClose?: () => void;
 }
 
 const ScratchpadWidget: React.FC<ScratchpadWidgetProps> = ({
@@ -16,13 +17,25 @@ const ScratchpadWidget: React.FC<ScratchpadWidgetProps> = ({
   setNotes,
   submittedDDx,
   finalDiagnosis,
-  selectedLabs
+  selectedLabs,
+  onClose
 }) => {
   return (
     <div className="h-screen bg-surface-container-lowest border-l border-outline-variant flex flex-col shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)] overflow-hidden shrink-0 w-full font-body-md">
-      <div className="bg-primary text-on-primary px-4 h-9 flex items-center gap-2 shadow-sm shrink-0 border-b border-primary-fixed-dim">
-        <PenTool className="w-4 h-4 flex-shrink-0" />
-        <h2 className="font-headline-md font-bold text-sm truncate">กระดาษทด (Scratchpad)</h2>
+      <div className="bg-primary text-on-primary px-3 md:px-4 h-9 flex items-center justify-between shadow-sm shrink-0 border-b border-primary-fixed-dim">
+        <div className="flex items-center gap-2 overflow-hidden">
+          <PenTool className="w-4 h-4 flex-shrink-0" />
+          <h2 className="font-headline-md font-bold text-sm truncate">กระดาษทด (Scratchpad)</h2>
+        </div>
+        {onClose && (
+          <button 
+            onClick={onClose}
+            className="p-1 hover:bg-white/20 rounded-full transition text-on-primary flex-shrink-0"
+            title="ซ่อนกระดาษทด (Hide Scratchpad)"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">

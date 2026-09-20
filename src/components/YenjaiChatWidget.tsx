@@ -229,21 +229,17 @@ const YenjaiChatWidget: React.FC<YenjaiChatWidgetProps> = ({ patientCase, contex
       {!isOpen && (
         <button 
           onClick={() => setIsOpen(true)}
-          className="relative group flex items-center transition-all hover:scale-105 animate-bounce-slow"
+          className="relative group flex items-center justify-center w-14 h-14 md:w-16 md:h-16 rounded-full bg-primary-container border-2 border-primary shadow-xl hover:scale-110 transition-all p-1"
+          title="คุยกับน้องเย็นใจ (AI Assistant)"
         >
-          <div className="bg-primary text-on-primary pl-6 py-3 rounded-l-full rounded-r-3xl shadow-lg pr-24 flex flex-col items-start border border-primary-fixed-dim">
-            <span className="font-black italic text-base leading-none tracking-wider text-on-primary drop-shadow-sm">LIVE CHAT</span>
-            <span className="text-[10px] font-medium mt-0.5 text-on-primary opacity-90">คุยกับน้องเย็นใจ</span>
-          </div>
-          <div className="absolute right-[-20px] top-1/2 -translate-y-1/2">
-            <div className="w-24 h-24 flex items-center justify-center group-hover:-rotate-6 transition-transform drop-shadow-lg">
-              <img 
-                src="/yenjai2.png" 
-                alt="Yenjai Avatar" 
-                className="w-full h-full object-contain"
-              />
-            </div>
-          </div>
+          <img 
+            src="/yenjai2.png" 
+            alt="Yenjai Avatar" 
+            className="w-full h-full object-contain rounded-full group-hover:-rotate-6 transition-transform"
+          />
+          <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-on-primary rounded-full text-[10px] font-bold flex items-center justify-center shadow-md animate-pulse">
+            💬
+          </span>
         </button>
       )}
     </div>
